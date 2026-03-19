@@ -7,22 +7,21 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="backdrop"></div>
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-top">
         <div class="brand">
           <p class="eyebrow">Old School RuneScape</p>
-          <h1>Drop Table Sim</h1>
-          <p class="subtle">Live wiki data and official Hiscores snapshots cached locally.</p>
+          <h1>Drop Table Simulator</h1>
+          <p class="subtle">Choose a monster or clue, run the loot simulation, and compare the result against cached wiki data.</p>
         </div>
 
         <div class="sidebar-card">
-          <label class="field-label" for="search">Search bosses and activities</label>
+          <label class="field-label" for="search">Find an encounter</label>
           <input id="search" class="text-input" type="search" placeholder="Vorkath, ToA, Barrows...">
           <label class="checkbox">
             <input id="supportedOnly" type="checkbox">
-            <span>Supported activities only</span>
+            <span>Show sim-ready activities only</span>
           </label>
         </div>
 
@@ -49,7 +48,7 @@
         <div class="sidebar-list-header">
           <div>
             <p class="eyebrow">Activity Browser</p>
-            <h2>Browse cache</h2>
+            <h2>Select what to simulate</h2>
           </div>
           <span class="sidebar-count" id="activityCountLabel">0 loaded</span>
         </div>
@@ -60,7 +59,7 @@
     <main class="main-panel">
       <section class="hero-card">
         <div class="hero-copy">
-          <p class="eyebrow">Activity</p>
+          <p class="eyebrow">Selected encounter</p>
           <h2 id="activityName">Select an activity</h2>
           <div id="activityMeta" class="meta-row"></div>
           <p id="activityNote" class="note"></p>
@@ -74,18 +73,11 @@
         </div>
       </section>
 
-      <nav class="section-nav" aria-label="Page sections">
-        <a href="#simulationPanel">Simulation</a>
-        <a href="#lootPanel">Loot summary</a>
-        <a href="#dropPanel">Drop table</a>
-        <a href="#leaderboardPanel">Hiscores</a>
-      </nav>
-
       <section id="simulationPanel" class="panel">
         <div class="panel-header">
           <div>
             <p class="eyebrow">Simulation</p>
-            <h3>Pick an activity and run it</h3>
+            <h3>Run loot simulation</h3>
           </div>
         </div>
         <form id="simulationForm" class="sim-form">
@@ -125,7 +117,7 @@
           <div class="panel-header">
             <div>
               <p class="eyebrow">Loot</p>
-              <h3>What the sim returned</h3>
+              <h3>Simulation result</h3>
             </div>
           </div>
           <div id="simulationResults" class="results-empty">No simulation run yet.</div>
@@ -135,7 +127,7 @@
           <div class="panel-header">
             <div>
               <p class="eyebrow">Hiscores</p>
-              <h3>Leaderboard snapshot</h3>
+              <h3>Cached leaderboard</h3>
             </div>
           </div>
           <div id="leaderboard" class="leaderboard-empty">No activity selected.</div>

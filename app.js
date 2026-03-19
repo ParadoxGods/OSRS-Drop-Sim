@@ -90,7 +90,7 @@ function renderActivityList() {
     const variantCount = activity.variants?.length || 0;
     button.innerHTML = `
       <strong>${activity.name}</strong>
-      <small>Hiscores table ${activity.table_id} · ${formatNumber(rowCount)} rows${variantCount ? ` · ${variantCount} variants` : ""}</small>
+      <small>${formatNumber(rowCount)} cached rows${variantCount ? ` · ${variantCount} variants` : ""} · Table ${activity.table_id}</small>
       <div class="badge-row">
         <span class="badge">${activity.supported ? "cached drops" : "viewer pending"}</span>
         ${
@@ -425,6 +425,7 @@ function renderSimulationResults(result) {
 
       <div class="drop-section">
         <h4>Full loot summary</h4>
+        <p class="panel-note">Ordered by total GE value, not kill-by-kill drops.</p>
         <div class="table-scroll">
           <table class="data-table">
             <thead>
