@@ -9,12 +9,12 @@
   --accent: #d8bc72;
   --accent-strong: #f1df98;
   --danger: #dd8c76;
-  --shadow: 0 14px 32px rgba(0, 0, 0, 0.28);
+  --shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
   --display-font: "Bahnschrift", "Segoe UI Semibold", "Segoe UI", sans-serif;
-  --page-width: 1600px;
+  --page-width: 1480px;
   --sidebar-width: 310px;
-  --module-pad: clamp(15px, 1.2vw, 20px);
-  --module-gap: clamp(12px, 1vw, 18px);
+  --module-pad: clamp(11px, 1vw, 16px);
+  --module-gap: clamp(8px, 0.8vw, 14px);
 }
 
 * {
@@ -52,13 +52,13 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(280px, var(--sidebar-width)) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--module-gap);
   width: min(var(--page-width), calc(100% - clamp(16px, 2vw, 28px)));
   margin: 0 auto;
   align-items: start;
   min-height: 100vh;
-  padding: clamp(12px, 1.8vw, 22px);
+  padding: clamp(10px, 1.4vw, 18px);
 }
 
 .sidebar,
@@ -76,40 +76,17 @@ body {
   gap: var(--module-gap);
   padding: var(--module-pad);
   background: var(--panel-strong);
-  position: sticky;
-  top: clamp(12px, 1.8vw, 22px);
-  max-height: calc(100vh - clamp(24px, 3.6vw, 44px));
+  position: static;
+  max-height: none;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .sidebar-top {
   display: grid;
-  gap: 16px;
-}
-
-.sidebar-list-shell {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  padding-top: 16px;
-}
-
-.sidebar-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.sidebar-list-header h2 {
-  margin: 2px 0 0;
-  font-size: 1rem;
-  font-family: var(--display-font);
-  letter-spacing: 0.04em;
+  grid-template-columns: minmax(0, 1.1fr) minmax(240px, 0.9fr) minmax(220px, 0.55fr);
+  gap: var(--module-gap);
+  align-items: start;
 }
 
 .sidebar-count {
@@ -126,7 +103,7 @@ body {
 }
 
 .brand h1 {
-  font-size: clamp(1.85rem, 2.6vw, 2.35rem);
+  font-size: clamp(1.45rem, 2vw, 1.95rem);
   line-height: 1.02;
   letter-spacing: 0.01em;
 }
@@ -164,7 +141,7 @@ button {
 
 .text-input {
   width: 100%;
-  padding: 11px 13px;
+  padding: 9px 11px;
   border: 1px solid rgba(217, 191, 123, 0.18);
   border-radius: 0;
   background: rgba(8, 12, 11, 0.96);
@@ -236,25 +213,25 @@ button {
 .main-panel {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   min-width: 0;
 }
 
 .hero-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(240px, 320px);
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 280px);
   gap: var(--module-gap);
   padding: var(--module-pad);
   background: var(--panel-strong);
   align-items: stretch;
-  min-height: clamp(260px, 24vw, 330px);
+  min-height: clamp(190px, 18vw, 260px);
 }
 
 .hero-copy {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 14px;
+  gap: 8px;
 }
 
 .activity-picker-trigger {
@@ -268,7 +245,7 @@ button {
   align-items: center;
   gap: 12px;
   max-width: 100%;
-  font-size: clamp(1.95rem, 4vw, 4rem);
+  font-size: clamp(1.45rem, 3vw, 3rem);
   line-height: 0.97;
   letter-spacing: 0.01em;
   font-family: var(--display-font);
@@ -303,15 +280,15 @@ button {
   max-width: 48ch;
   font-family: var(--display-font);
   letter-spacing: 0.03em;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
 }
 
 .meta-row,
 .action-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 
 .meta-chip,
@@ -319,7 +296,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 12px;
+  padding: 7px 10px;
   border-radius: 0;
   border: 1px solid rgba(217, 191, 123, 0.18);
   background: rgba(11, 18, 16, 0.88);
@@ -327,7 +304,7 @@ button {
   font-family: var(--display-font);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
 }
 
 .link-pill {
@@ -337,7 +314,7 @@ button {
 .hero-art {
   display: grid;
   place-items: center;
-  min-height: 230px;
+  min-height: 180px;
   border-radius: 0;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(9, 14, 12, 0.7);
@@ -346,14 +323,14 @@ button {
 
 .hero-art img {
   max-width: 100%;
-  max-height: 230px;
+  max-height: 180px;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
   gap: var(--module-gap);
   align-items: start;
 }
@@ -382,13 +359,13 @@ button {
   justify-content: space-between;
   gap: 16px;
   align-items: center;
-  margin-bottom: 14px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .panel-header h3 {
-  font-size: 1.1rem;
+  font-size: 0.96rem;
   font-family: var(--display-font);
   letter-spacing: 0.02em;
 }
@@ -429,27 +406,27 @@ button {
 
 .sim-form {
   display: grid;
-  gap: 14px;
-  padding-bottom: 14px;
-  margin-bottom: 14px;
+  gap: 10px;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
 }
 
 .primary-button {
   width: fit-content;
-  padding: 12px 18px;
+  padding: 10px 14px;
   border: 1px solid rgba(0, 0, 0, 0.8);
   border-radius: 0;
   background: var(--accent);
   color: #231a0a;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   cursor: pointer;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
   font-family: var(--display-font);
@@ -468,7 +445,7 @@ button {
 
 .results-empty,
 .leaderboard-empty {
-  padding: 18px;
+  padding: 14px;
   border: 1px dashed rgba(217, 191, 123, 0.2);
   border-radius: 0;
   color: var(--muted);
@@ -490,12 +467,12 @@ button {
 
 .result-metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
 }
 
 .metric-card {
-  padding: 15px;
+  padding: 12px;
   border-radius: 0;
   background: rgba(9, 14, 12, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -504,7 +481,7 @@ button {
 .metric-card strong {
   display: block;
   margin-top: 4px;
-  font-size: 1.2rem;
+  font-size: 1.02rem;
 }
 
 .data-table {
@@ -515,7 +492,7 @@ button {
 
 .data-table th,
 .data-table td {
-  padding: 10px 8px;
+  padding: 8px 7px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   text-align: left;
   vertical-align: top;
@@ -546,12 +523,12 @@ button {
 
 .drop-sections {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
 .drop-section {
-  padding: 14px 15px 15px;
+  padding: 12px 12px 13px;
   border-radius: 0;
   background: rgba(9, 14, 12, 0.55);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -566,14 +543,14 @@ button {
 
 .loot-highlights {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
 }
 
 .loot-highlight {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(8, 15, 13, 0.72);
 }
@@ -649,8 +626,8 @@ button {
 .modal-panel {
   position: relative;
   z-index: 1;
-  width: min(1700px, calc(100vw - 24px));
-  height: min(90vh, 960px);
+  width: min(1520px, calc(100vw - 24px));
+  height: min(88vh, 900px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -672,7 +649,7 @@ button {
 .modal-header h2 {
   margin: 4px 0 0;
   font-family: var(--display-font);
-  font-size: 1.55rem;
+  font-size: 1.25rem;
   letter-spacing: 0.02em;
 }
 
@@ -705,7 +682,7 @@ button {
 .activity-grid {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   overflow: auto;
   flex: 1;
   min-height: 0;
@@ -716,7 +693,7 @@ button {
   display: grid;
   gap: 8px;
   align-content: start;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(9, 14, 12, 0.62);
   color: var(--text);
@@ -746,7 +723,7 @@ button {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  font-size: 0.84rem;
+  font-size: 0.72rem;
   line-height: 1.2;
   min-height: 2.4em;
   font-family: var(--display-font);
@@ -755,7 +732,7 @@ button {
 
 .activity-tile small {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   line-height: 1.3;
   font-family: var(--display-font);
   letter-spacing: 0.02em;
@@ -780,14 +757,14 @@ button {
 .simulation-loading {
   display: grid;
   place-items: center;
-  gap: 14px;
-  min-height: 220px;
+  gap: 10px;
+  min-height: 180px;
   animation: fade-in 180ms ease;
 }
 
 .simulation-loading .spinner {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 3px solid rgba(217, 191, 123, 0.18);
   border-top-color: var(--accent-strong);
@@ -898,6 +875,10 @@ body.modal-open {
   .sidebar {
     position: static;
     max-height: none;
+  }
+
+  .sidebar-top {
+    grid-template-columns: 1fr;
   }
 
   .workspace,
