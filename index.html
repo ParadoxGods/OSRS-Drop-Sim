@@ -64,81 +64,85 @@
         </div>
       </section>
 
-      <section id="simulationPanel" class="panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Simulation</p>
-            <h3>Run loot simulation</h3>
-          </div>
+      <div class="workspace">
+        <div class="workspace-primary">
+          <section id="simulationPanel" class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Simulation</p>
+                <h3>Run loot simulation</h3>
+              </div>
+            </div>
+            <form id="simulationForm" class="sim-form">
+              <div class="form-grid">
+                <label id="variantField" hidden>
+                  <span class="field-label">Variant</span>
+                  <select id="variantSelect" class="text-input">
+                    <option value="">Default</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">Kills</span>
+                  <input id="killsInput" class="text-input" type="number" min="1" value="100">
+                </label>
+                <label>
+                  <span class="field-label">Seed</span>
+                  <input id="seedInput" class="text-input" type="number" placeholder="Optional">
+                </label>
+                <label>
+                  <span class="field-label">Target item</span>
+                  <select id="targetItem" class="text-input">
+                    <option value="">Fixed-kill sim</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">Target count</span>
+                  <input id="targetCount" class="text-input" type="number" min="1" value="1">
+                </label>
+              </div>
+              <button id="simulateButton" class="primary-button" type="submit">Simulate</button>
+              <p id="simulationHelp" class="muted">Choose an activity to enable simulation.</p>
+            </form>
+          </section>
+
+          <section id="lootPanel" class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Loot</p>
+                <h3>Simulation result</h3>
+              </div>
+            </div>
+            <div id="simulationResults" class="results-empty">No simulation run yet.</div>
+          </section>
         </div>
-        <form id="simulationForm" class="sim-form">
-          <div class="form-grid">
-            <label id="variantField" hidden>
-              <span class="field-label">Variant</span>
-              <select id="variantSelect" class="text-input">
-                <option value="">Default</option>
-              </select>
-            </label>
-            <label>
-              <span class="field-label">Kills</span>
-              <input id="killsInput" class="text-input" type="number" min="1" value="100">
-            </label>
-            <label>
-              <span class="field-label">Seed</span>
-              <input id="seedInput" class="text-input" type="number" placeholder="Optional">
-            </label>
-            <label>
-              <span class="field-label">Target item</span>
-              <select id="targetItem" class="text-input">
-                <option value="">Fixed-kill sim</option>
-              </select>
-            </label>
-            <label>
-              <span class="field-label">Target count</span>
-              <input id="targetCount" class="text-input" type="number" min="1" value="1">
-            </label>
-          </div>
-          <button id="simulateButton" class="primary-button" type="submit">Simulate</button>
-          <p id="simulationHelp" class="muted">Choose an activity to enable simulation.</p>
-        </form>
-      </section>
 
-      <div class="content-grid">
-        <section id="lootPanel" class="panel">
+        <div class="workspace-secondary">
+          <section id="leaderboardPanel" class="panel">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Hiscores</p>
+                <h3>Cached leaderboard</h3>
+              </div>
+            </div>
+            <div id="leaderboard" class="leaderboard-empty">No activity selected.</div>
+          </section>
+
+          <section id="dropPanel" class="panel drop-panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Loot</p>
-              <h3>Simulation result</h3>
+              <p class="eyebrow">Drop data</p>
+              <h3>Optional table</h3>
             </div>
           </div>
-          <div id="simulationResults" class="results-empty">No simulation run yet.</div>
-        </section>
-
-        <section id="leaderboardPanel" class="panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Hiscores</p>
-              <h3>Cached leaderboard</h3>
+          <details id="dropTableToggle" class="drop-table-toggle">
+            <summary id="dropTableSummary" class="drop-table-summary">Open cached drop table</summary>
+            <div id="dropSections" class="drop-sections">
+              <div class="results-empty">No activity selected.</div>
             </div>
-          </div>
-          <div id="leaderboard" class="leaderboard-empty">No activity selected.</div>
+          </details>
         </section>
+        </div>
       </div>
-
-      <section id="dropPanel" class="panel drop-panel">
-        <div class="panel-header">
-          <div>
-            <p class="eyebrow">Drop data</p>
-            <h3>Optional table</h3>
-          </div>
-        </div>
-        <details id="dropTableToggle" class="drop-table-toggle">
-          <summary id="dropTableSummary" class="drop-table-summary">Open cached drop table</summary>
-          <div id="dropSections" class="drop-sections">
-            <div class="results-empty">No activity selected.</div>
-          </div>
-        </details>
-      </section>
     </main>
   </div>
 
