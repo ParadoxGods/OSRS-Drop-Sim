@@ -120,7 +120,7 @@ export function simulateActivity(activityData, options = {}) {
     seed = null,
     target_item_slug: targetItemSlug = null,
     target_count: targetCount = 1,
-    max_chase_kills: maxChaseKills = 250000,
+    max_chase_kills: maxChaseKills = 25000000,
   } = options;
 
   if (activityData?.simulation_disabled) {
