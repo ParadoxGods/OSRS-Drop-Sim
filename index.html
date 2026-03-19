@@ -9,40 +9,8 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="sidebar-top">
-        <div class="brand">
-          <p class="eyebrow">Old School RuneScape</p>
-          <h1>Drop Table Simulator</h1>
-          <p class="subtle">Choose a monster or clue, run the loot simulation, and compare the result against cached wiki data.</p>
-        </div>
-
-        <div class="sidebar-card">
-          <label class="field-label" for="search">Find an encounter</label>
-          <input id="search" class="text-input" type="search" placeholder="Vorkath, ToA, Barrows...">
-          <label class="checkbox">
-            <input id="supportedOnly" type="checkbox">
-            <span>Show sim-ready activities only</span>
-          </label>
-        </div>
-
-        <div class="sidebar-card">
-          <div class="stat-grid">
-            <div>
-              <span class="stat-label">Cached</span>
-              <strong id="statActivities">0</strong>
-            </div>
-            <div>
-              <span class="stat-label">Playable</span>
-              <strong id="statSupported">0</strong>
-            </div>
-            <div>
-              <span class="stat-label">Simulation</span>
-              <strong id="statSimulation">0</strong>
-            </div>
-          </div>
-          <p id="statusText" class="muted">Loading cached dataset...</p>
-          <p class="muted">Open the sprite picker in the main panel to choose an encounter.</p>
-        </div>
+      <div class="brand">
+        <h1>Drop Table Simulator</h1>
       </div>
     </aside>
 
@@ -84,10 +52,6 @@
                 <label>
                   <span class="field-label">Kills</span>
                   <input id="killsInput" class="text-input" type="number" min="1" value="100">
-                </label>
-                <label>
-                  <span class="field-label">Seed</span>
-                  <input id="seedInput" class="text-input" type="number" placeholder="Optional">
                 </label>
                 <label>
                   <span class="field-label">Target item</span>

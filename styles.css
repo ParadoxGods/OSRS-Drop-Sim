@@ -74,19 +74,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--module-gap);
-  padding: var(--module-pad);
-  background: var(--panel-strong);
+  padding: 4px 0 0;
+  background: transparent;
   position: static;
   max-height: none;
   min-height: 0;
   overflow: visible;
-}
-
-.sidebar-top {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(240px, 0.9fr) minmax(220px, 0.55fr);
-  gap: var(--module-gap);
-  align-items: start;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
 }
 
 .sidebar-count {
@@ -103,9 +99,9 @@ body {
 }
 
 .brand h1 {
-  font-size: clamp(1.45rem, 2vw, 1.95rem);
-  line-height: 1.02;
-  letter-spacing: 0.01em;
+  font-size: clamp(1.1rem, 1.5vw, 1.45rem);
+  line-height: 1.08;
+  letter-spacing: 0.02em;
 }
 
 .subtle,
@@ -121,16 +117,6 @@ body {
 .panel,
 .hero-card {
   background: var(--panel);
-}
-
-.sidebar-card {
-  padding: var(--module-pad);
-  border-radius: 0;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-card .muted:last-child {
-  margin-bottom: 0;
 }
 
 .text-input,
@@ -875,10 +861,6 @@ body.modal-open {
   .sidebar {
     position: static;
     max-height: none;
-  }
-
-  .sidebar-top {
-    grid-template-columns: 1fr;
   }
 
   .workspace,

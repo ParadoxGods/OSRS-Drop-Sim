@@ -14,15 +14,9 @@ const elements = {
   activityModal: document.getElementById("activityModal"),
   closeActivityPicker: document.getElementById("closeActivityPicker"),
   activityGrid: document.getElementById("activityGrid"),
-  search: document.getElementById("search"),
-  supportedOnly: document.getElementById("supportedOnly"),
-  statActivities: document.getElementById("statActivities"),
-  statSupported: document.getElementById("statSupported"),
-  statSimulation: document.getElementById("statSimulation"),
   modalSearch: document.getElementById("modalSearch"),
   modalSupportedOnly: document.getElementById("modalSupportedOnly"),
   modalCountLabel: document.getElementById("modalCountLabel"),
-  statusText: document.getElementById("statusText"),
   activityMeta: document.getElementById("activityMeta"),
   activityNote: document.getElementById("activityNote"),
   wikiLink: document.getElementById("wikiLink"),
@@ -39,7 +33,6 @@ const elements = {
   variantField: document.getElementById("variantField"),
   variantSelect: document.getElementById("variantSelect"),
   killsInput: document.getElementById("killsInput"),
-  seedInput: document.getElementById("seedInput"),
   targetItem: document.getElementById("targetItem"),
   targetCount: document.getElementById("targetCount"),
 };
@@ -84,17 +77,6 @@ async function getJson(url) {
   return response.json();
 }
 
-function renderStatus() {
-  if (!state.status) {
-    return;
-  }
-  elements.statActivities.textContent = formatNumber(state.status.activity_count || 0);
-  elements.statSupported.textContent = formatNumber(state.status.supported_count || 0);
-  elements.statSimulation.textContent = formatNumber(state.status.simulation_enabled_count || 0);
-  const generated = state.status.generated_at ? new Date(state.status.generated_at).toLocaleString() : "not synced";
-  elements.statusText.textContent = `Cache generated ${generated}`;
-}
-
 function renderActivityGrid() {
   const list = state.filteredActivities;
   elements.modalCountLabel.textContent = `${formatNumber(list.length)} shown`;
@@ -124,14 +106,7 @@ function renderActivityGrid() {
 }
 
 function filterActivities() {
-  const search = elements.search.value.trim().toLowerCase();
-  const supportedOnly = elements.supportedOnly.checked;
-  state.filteredActivities = state.activities.filter((activity) => {
-    if (supportedOnly && !activity.supported) {
-      return false;
-    }
-    return matchesActivityFilter(activity, search);
-  }).sort((a, b) => {
+  state.filteredActivities = state.activities.slice().sort((a, b) => {
     if (a.slug === state.selectedSlug) return -1;
     if (b.slug === state.selectedSlug) return 1;
     return a.name.localeCompare(b.name);
@@ -158,8 +133,8 @@ function renderModalPicker() {
 function openActivityModal() {
   elements.activityModal.hidden = false;
   document.body.classList.add("modal-open");
-  elements.modalSearch.value = elements.search.value;
-  elements.modalSupportedOnly.checked = elements.supportedOnly.checked;
+  elements.modalSearch.value = "";
+  elements.modalSupportedOnly.checked = false;
   renderModalPicker();
   window.requestAnimationFrame(() => {
     elements.modalSearch.focus();
@@ -396,7 +371,6 @@ function renderSimulationState(activity) {
   elements.targetItem.disabled = disabled;
   elements.targetCount.disabled = disabled;
   elements.killsInput.disabled = disabled;
-  elements.seedInput.disabled = disabled;
   const rollRange = activity.simulation?.reward_roll_range;
   const rollText = rollRange ? ` This activity rolls ${rollRange.min}-${rollRange.max} reward slots per casket.` : "";
   elements.simulationHelp.textContent = disabled
@@ -545,7 +519,6 @@ async function loadApp() {
   state.status = await getJson("./data/index.json");
   state.activities = state.status.activities || [];
   state.filteredActivities = state.activities.slice();
-  renderStatus();
   filterActivities();
 
   const preferred =
@@ -557,8 +530,6 @@ async function loadApp() {
   }
 }
 
-elements.search.addEventListener("input", filterActivities);
-elements.supportedOnly.addEventListener("change", filterActivities);
 elements.activityPickerTrigger.addEventListener("click", openActivityModal);
 elements.closeActivityPicker.addEventListener("click", closeActivityModal);
 elements.activityModal.addEventListener("click", (event) => {
@@ -594,9 +565,6 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     payload.variant_id = state.selectedVariantId;
   }
 
-  if (elements.seedInput.value.trim()) {
-    payload.seed = Number(elements.seedInput.value);
-  }
   if (elements.targetItem.value) {
     payload.target_item_slug = elements.targetItem.value;
     payload.target_count = Number(elements.targetCount.value || 1);
@@ -620,6 +588,5 @@ elements.simulationForm.addEventListener("submit", async (event) => {
 
 loadApp().catch((error) => {
   console.error(error);
-  elements.statusText.textContent = "Failed to load local cache.";
   elements.activityGrid.innerHTML = '<div class="results-empty">The app could not load the cached data files.</div>';
 });
