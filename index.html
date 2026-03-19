@@ -74,63 +74,79 @@
         </div>
       </section>
 
+      <nav class="section-nav" aria-label="Page sections">
+        <a href="#simulationPanel">Simulation</a>
+        <a href="#lootPanel">Loot summary</a>
+        <a href="#dropPanel">Drop table</a>
+        <a href="#leaderboardPanel">Hiscores</a>
+      </nav>
+
+      <section id="simulationPanel" class="panel">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Simulation</p>
+            <h3>Pick an activity and run it</h3>
+          </div>
+        </div>
+        <form id="simulationForm" class="sim-form">
+          <div class="form-grid">
+            <label id="variantField" hidden>
+              <span class="field-label">Variant</span>
+              <select id="variantSelect" class="text-input">
+                <option value="">Default</option>
+              </select>
+            </label>
+            <label>
+              <span class="field-label">Kills</span>
+              <input id="killsInput" class="text-input" type="number" min="1" value="100">
+            </label>
+            <label>
+              <span class="field-label">Seed</span>
+              <input id="seedInput" class="text-input" type="number" placeholder="Optional">
+            </label>
+            <label>
+              <span class="field-label">Target item</span>
+              <select id="targetItem" class="text-input">
+                <option value="">Fixed-kill sim</option>
+              </select>
+            </label>
+            <label>
+              <span class="field-label">Target count</span>
+              <input id="targetCount" class="text-input" type="number" min="1" value="1">
+            </label>
+          </div>
+          <button id="simulateButton" class="primary-button" type="submit">Simulate</button>
+          <p id="simulationHelp" class="muted">Choose an activity to enable simulation.</p>
+        </form>
+      </section>
+
       <div class="content-grid">
-        <section class="panel">
+        <section id="lootPanel" class="panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Simulation</p>
-              <h3>Run kills</h3>
+              <p class="eyebrow">Loot</p>
+              <h3>What the sim returned</h3>
             </div>
           </div>
-          <form id="simulationForm" class="sim-form">
-            <div class="form-grid">
-              <label id="variantField" hidden>
-                <span class="field-label">Variant</span>
-                <select id="variantSelect" class="text-input">
-                  <option value="">Default</option>
-                </select>
-              </label>
-              <label>
-                <span class="field-label">Kills</span>
-                <input id="killsInput" class="text-input" type="number" min="1" value="100">
-              </label>
-              <label>
-                <span class="field-label">Seed</span>
-                <input id="seedInput" class="text-input" type="number" placeholder="Optional">
-              </label>
-              <label>
-                <span class="field-label">Target item</span>
-                <select id="targetItem" class="text-input">
-                  <option value="">Fixed-kill sim</option>
-                </select>
-              </label>
-              <label>
-                <span class="field-label">Target count</span>
-                <input id="targetCount" class="text-input" type="number" min="1" value="1">
-              </label>
-            </div>
-            <button id="simulateButton" class="primary-button" type="submit">Simulate</button>
-            <p id="simulationHelp" class="muted">Choose an activity to enable simulation.</p>
-          </form>
           <div id="simulationResults" class="results-empty">No simulation run yet.</div>
         </section>
 
-        <section class="panel">
+        <section id="leaderboardPanel" class="panel">
           <div class="panel-header">
             <div>
               <p class="eyebrow">Hiscores</p>
-              <h3>Top leaderboard snapshot</h3>
+              <h3>Leaderboard snapshot</h3>
             </div>
           </div>
           <div id="leaderboard" class="leaderboard-empty">No activity selected.</div>
         </section>
       </div>
 
-      <section class="panel drop-panel">
+      <section id="dropPanel" class="panel drop-panel">
         <div class="panel-header">
           <div>
             <p class="eyebrow">Drop data</p>
-            <h3>Cached table</h3>
+            <h3>Optional table</h3>
           </div>
         </div>
         <details id="dropTableToggle" class="drop-table-toggle">

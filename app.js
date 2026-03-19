@@ -86,9 +86,11 @@ function renderActivityList() {
     const button = document.createElement("button");
     button.className = `activity-button${activity.slug === state.selectedSlug ? " is-active" : ""}`;
     button.type = "button";
+    const rowCount = activity.row_count || 0;
+    const variantCount = activity.variants?.length || 0;
     button.innerHTML = `
       <strong>${activity.name}</strong>
-      <small>Hiscores table ${activity.table_id}</small>
+      <small>Hiscores table ${activity.table_id} · ${formatNumber(rowCount)} rows${variantCount ? ` · ${variantCount} variants` : ""}</small>
       <div class="badge-row">
         <span class="badge">${activity.supported ? "cached drops" : "viewer pending"}</span>
         ${
