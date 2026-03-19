@@ -41,18 +41,8 @@
             </div>
           </div>
           <p id="statusText" class="muted">Loading cached dataset...</p>
+          <p class="muted">Open the sprite picker in the main panel to choose an encounter.</p>
         </div>
-      </div>
-
-      <div class="sidebar-list-shell">
-        <div class="sidebar-list-header">
-          <div>
-            <p class="eyebrow">Activity Browser</p>
-            <h2>Select what to simulate</h2>
-          </div>
-          <span class="sidebar-count" id="activityCountLabel">0 loaded</span>
-        </div>
-        <div id="activityList" class="activity-list"></div>
       </div>
     </aside>
 
@@ -60,7 +50,7 @@
       <section class="hero-card">
         <div class="hero-copy">
           <p class="eyebrow">Selected encounter</p>
-          <h2 id="activityName">Select an activity</h2>
+          <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select an activity</button>
           <div id="activityMeta" class="meta-row"></div>
           <p id="activityNote" class="note"></p>
           <div class="action-row">
@@ -149,6 +139,31 @@
         </details>
       </section>
     </main>
+  </div>
+
+  <div id="activityModal" class="modal" hidden>
+    <div class="modal-backdrop" data-modal-close></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="activityModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Encounter picker</p>
+          <h2 id="activityModalTitle">Select an activity</h2>
+        </div>
+        <button id="closeActivityPicker" class="icon-button" type="button" aria-label="Close activity picker">×</button>
+      </div>
+      <div class="modal-toolbar">
+        <input id="modalSearch" class="text-input" type="search" placeholder="Search by monster, raid, or clue">
+        <label class="checkbox">
+          <input id="modalSupportedOnly" type="checkbox">
+          <span>Sim-ready only</span>
+        </label>
+      </div>
+      <div class="picker-meta">
+        <span id="modalCountLabel" class="sidebar-count">0 loaded</span>
+        <span class="muted">Click a sprite to load the encounter</span>
+      </div>
+      <div id="activityGrid" class="activity-grid"></div>
+    </section>
   </div>
 
   <script type="module" src="./app.js"></script>

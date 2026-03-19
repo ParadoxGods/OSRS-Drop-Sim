@@ -10,15 +10,19 @@ const state = {
 };
 
 const elements = {
-  activityList: document.getElementById("activityList"),
+  activityPickerTrigger: document.getElementById("activityPickerTrigger"),
+  activityModal: document.getElementById("activityModal"),
+  closeActivityPicker: document.getElementById("closeActivityPicker"),
+  activityGrid: document.getElementById("activityGrid"),
   search: document.getElementById("search"),
   supportedOnly: document.getElementById("supportedOnly"),
   statActivities: document.getElementById("statActivities"),
   statSupported: document.getElementById("statSupported"),
   statSimulation: document.getElementById("statSimulation"),
-  activityCountLabel: document.getElementById("activityCountLabel"),
+  modalSearch: document.getElementById("modalSearch"),
+  modalSupportedOnly: document.getElementById("modalSupportedOnly"),
+  modalCountLabel: document.getElementById("modalCountLabel"),
   statusText: document.getElementById("statusText"),
-  activityName: document.getElementById("activityName"),
   activityMeta: document.getElementById("activityMeta"),
   activityNote: document.getElementById("activityNote"),
   wikiLink: document.getElementById("wikiLink"),
@@ -54,6 +58,24 @@ function assetUrl(path) {
   return `./${path.replace(/^\/+/, "")}`;
 }
 
+function matchesActivityFilter(activity, query) {
+  if (!query) {
+    return true;
+  }
+  const haystack = [
+    activity.name,
+    activity.slug,
+    activity.wiki_page,
+    activity.note,
+    activity.table_id,
+    ...(activity.variants || []).flatMap((variant) => [variant.label, variant.id, variant.note]),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
 async function getJson(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -73,37 +95,31 @@ function renderStatus() {
   elements.statusText.textContent = `Cache generated ${generated}`;
 }
 
-function renderActivityList() {
+function renderActivityGrid() {
   const list = state.filteredActivities;
-  elements.activityCountLabel.textContent = `${formatNumber(list.length)} shown`;
+  elements.modalCountLabel.textContent = `${formatNumber(list.length)} shown`;
   if (!list.length) {
-    elements.activityList.innerHTML = '<div class="results-empty">No activities match the current filter.</div>';
+    elements.activityGrid.innerHTML = '<div class="results-empty">No activities match the current filter.</div>';
     return;
   }
 
-  elements.activityList.innerHTML = "";
+  elements.activityGrid.innerHTML = "";
   list.forEach((activity) => {
     const button = document.createElement("button");
-    button.className = `activity-button${activity.slug === state.selectedSlug ? " is-active" : ""}`;
+    button.className = `activity-tile${activity.slug === state.selectedSlug ? " is-active" : ""}`;
     button.type = "button";
     const rowCount = activity.row_count || 0;
     const variantCount = activity.variants?.length || 0;
+    const image = activity.activity_image_path
+      ? `<img src="${assetUrl(activity.activity_image_path)}" alt="${activity.name} sprite">`
+      : '<div class="activity-tile-fallback">No art</div>';
     button.innerHTML = `
+      ${image}
       <strong>${activity.name}</strong>
-      <small>${formatNumber(rowCount)} cached rows${variantCount ? ` · ${variantCount} variants` : ""} · Table ${activity.table_id}</small>
-      <div class="badge-row">
-        <span class="badge">${activity.supported ? "cached drops" : "viewer pending"}</span>
-        ${
-          activity.simulation_disabled
-            ? '<span class="badge badge-danger">sim disabled</span>'
-            : activity.supported
-              ? '<span class="badge">sim ready</span>'
-              : ""
-        }
-      </div>
+      <small>${formatNumber(rowCount)} rows${variantCount ? ` · ${variantCount} variants` : ""}</small>
     `;
     button.addEventListener("click", () => selectActivity(activity.slug));
-    elements.activityList.appendChild(button);
+    elements.activityGrid.appendChild(button);
   });
 }
 
@@ -114,9 +130,45 @@ function filterActivities() {
     if (supportedOnly && !activity.supported) {
       return false;
     }
-    return !search || activity.name.toLowerCase().includes(search);
+    return matchesActivityFilter(activity, search);
+  }).sort((a, b) => {
+    if (a.slug === state.selectedSlug) return -1;
+    if (b.slug === state.selectedSlug) return 1;
+    return a.name.localeCompare(b.name);
   });
-  renderActivityList();
+  renderActivityGrid();
+}
+
+function renderModalPicker() {
+  const search = elements.modalSearch.value.trim().toLowerCase();
+  const supportedOnly = elements.modalSupportedOnly.checked;
+  state.filteredActivities = state.activities.filter((activity) => {
+    if (supportedOnly && !activity.supported) {
+      return false;
+    }
+    return matchesActivityFilter(activity, search);
+  }).sort((a, b) => {
+    if (a.slug === state.selectedSlug) return -1;
+    if (b.slug === state.selectedSlug) return 1;
+    return a.name.localeCompare(b.name);
+  });
+  renderActivityGrid();
+}
+
+function openActivityModal() {
+  elements.activityModal.hidden = false;
+  document.body.classList.add("modal-open");
+  elements.modalSearch.value = elements.search.value;
+  elements.modalSupportedOnly.checked = elements.supportedOnly.checked;
+  renderModalPicker();
+  window.requestAnimationFrame(() => {
+    elements.modalSearch.focus();
+  });
+}
+
+function closeActivityModal() {
+  elements.activityModal.hidden = true;
+  document.body.classList.remove("modal-open");
 }
 
 function renderVariantSelector(activity) {
@@ -150,7 +202,7 @@ function getActiveActivityView(activity = state.selectedActivity) {
 }
 
 function renderActivityHeader(activity, view = getActiveActivityView(activity)) {
-  elements.activityName.textContent = activity.name;
+  elements.activityPickerTrigger.textContent = activity.name || "Select an activity";
   elements.activityMeta.innerHTML = "";
   [
     (view?.wiki_page || activity.wiki_page) ? `Wiki: ${view?.wiki_page || activity.wiki_page}` : null,
@@ -197,6 +249,24 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
   } else {
     elements.activityImage.hidden = true;
   }
+}
+
+function setSimulationLoading(message) {
+  elements.simulationResults.classList.add("is-loading");
+  elements.simulationResults.innerHTML = `
+    <div class="simulation-loading">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="loading-copy">
+        <strong>${message}</strong>
+        <span class="muted">Preparing rolls and aggregating the result.</span>
+      </div>
+      <div class="loading-bars" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  `;
 }
 
 function renderLeaderboard(activity) {
@@ -346,6 +416,7 @@ function refreshSelectedActivityView(resetResults = false) {
 }
 
 function renderSimulationResults(result) {
+  elements.simulationResults.classList.remove("is-loading");
   const topItems = (result.top_items || [])
     .map((item) => {
       const image = item.item_asset_path ? `<img src="${assetUrl(item.item_asset_path)}" alt="">` : "";
@@ -446,18 +517,25 @@ function renderSimulationResults(result) {
 
 async function selectActivity(slug) {
   state.selectedSlug = slug;
-  renderActivityList();
+  renderActivityGrid();
   elements.dropTableToggle.open = false;
   if (window.scrollY > 120) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  elements.simulationResults.innerHTML = '<div class="results-empty">Loading activity data...</div>';
-  const activity = await getJson(`./data/activities/${slug}.json`);
-  state.selectedActivity = activity;
-  renderVariantSelector(activity);
-  refreshSelectedActivityView(false);
-  renderLeaderboard(activity);
-  elements.simulationResults.innerHTML = '<div class="results-empty">Run a simulation to see the final loot summary.</div>';
+  setSimulationLoading("Loading encounter data...");
+  try {
+    const activity = await getJson(`./data/activities/${slug}.json`);
+    state.selectedActivity = activity;
+    renderVariantSelector(activity);
+    refreshSelectedActivityView(false);
+    renderLeaderboard(activity);
+    elements.simulationResults.classList.remove("is-loading");
+    elements.simulationResults.innerHTML = '<div class="results-empty">Run a simulation to see the final loot summary.</div>';
+    closeActivityModal();
+  } catch (error) {
+    elements.simulationResults.classList.remove("is-loading");
+    elements.simulationResults.innerHTML = `<div class="results-empty">${error.message || "Failed to load activity data."}</div>`;
+  }
 }
 
 async function loadApp() {
@@ -478,6 +556,20 @@ async function loadApp() {
 
 elements.search.addEventListener("input", filterActivities);
 elements.supportedOnly.addEventListener("change", filterActivities);
+elements.activityPickerTrigger.addEventListener("click", openActivityModal);
+elements.closeActivityPicker.addEventListener("click", closeActivityModal);
+elements.activityModal.addEventListener("click", (event) => {
+  if (event.target.matches("[data-modal-close]")) {
+    closeActivityModal();
+  }
+});
+elements.modalSearch.addEventListener("input", renderModalPicker);
+elements.modalSupportedOnly.addEventListener("change", renderModalPicker);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !elements.activityModal.hidden) {
+    closeActivityModal();
+  }
+});
 elements.variantSelect.addEventListener("change", () => {
   state.selectedVariantId = elements.variantSelect.value || null;
   refreshSelectedActivityView(true);
@@ -507,7 +599,8 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     payload.target_count = Number(elements.targetCount.value || 1);
   }
 
-  elements.simulationResults.innerHTML = '<div class="results-empty">Running simulation...</div>';
+  setSimulationLoading("Rolling loot...");
+  await new Promise((resolve) => window.setTimeout(resolve, 220));
   try {
     const result = simulateActivity(payload, {
       kills: payload.kills,
@@ -517,6 +610,7 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     });
     renderSimulationResults(result);
   } catch (error) {
+    elements.simulationResults.classList.remove("is-loading");
     elements.simulationResults.innerHTML = `<div class="results-empty">${error.message || "Simulation failed."}</div>`;
   }
 });
@@ -524,5 +618,5 @@ elements.simulationForm.addEventListener("submit", async (event) => {
 loadApp().catch((error) => {
   console.error(error);
   elements.statusText.textContent = "Failed to load local cache.";
-  elements.activityList.innerHTML = '<div class="results-empty">The app could not load the cached data files.</div>';
+  elements.activityGrid.innerHTML = '<div class="results-empty">The app could not load the cached data files.</div>';
 });
