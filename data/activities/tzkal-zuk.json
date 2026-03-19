@@ -1,0 +1,111 @@
+{
+  "name": "TzKal-Zuk",
+  "slug": "tzkal-zuk",
+  "table_id": 79,
+  "hiscores_url": "https://secure.runescape.com/m=hiscore_oldschool/overall?category_type=1&table=79",
+  "wiki_page": "TzKal-Zuk",
+  "wiki_url": "https://oldschool.runescape.wiki/w/TzKal-Zuk",
+  "wiki_sections": [
+    "Drops",
+    "Rewards"
+  ],
+  "activity_image_path": "assets/activities/tzkal-zuk.png",
+  "supported": true,
+  "note": null,
+  "simulation_disabled": false,
+  "leaderboard_path": "data/leaderboards/tzkal-zuk.json",
+  "leaderboard_preview": [
+    {
+      "rank": 1,
+      "name": "Librain",
+      "score": 1006
+    },
+    {
+      "rank": 2,
+      "name": "Slim Paul",
+      "score": 666
+    },
+    {
+      "rank": 3,
+      "name": "dearlola1",
+      "score": 545
+    },
+    {
+      "rank": 4,
+      "name": "Rob Iron",
+      "score": 469
+    },
+    {
+      "rank": 5,
+      "name": "UzbekisDan",
+      "score": 420
+    },
+    {
+      "rank": 6,
+      "name": "jonppeli",
+      "score": 400
+    },
+    {
+      "rank": 7,
+      "name": "aaty",
+      "score": 382
+    },
+    {
+      "rank": 8,
+      "name": "SubParMed",
+      "score": 370
+    },
+    {
+      "rank": 9,
+      "name": "AlwayzJarvin",
+      "score": 348
+    },
+    {
+      "rank": 10,
+      "name": "L4RNG",
+      "score": 339
+    }
+  ],
+  "drop_rows": [
+    {
+      "item_name": "Jal-nib-rek",
+      "item_slug": "jal-nib-rek",
+      "item_page": "https://oldschool.runescape.wiki/w/Jal-nib-rek",
+      "item_asset_path": "assets/items/jal-nib-rek.png",
+      "section": "Drops",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/100",
+      "rarity_percent": "1",
+      "probability": 0.01,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": null,
+      "ha_unit_estimate": null,
+      "row_id": "Drops::jal-nib-rek::1/100"
+    }
+  ],
+  "variants": [],
+  "sections": [
+    {
+      "name": "Drops",
+      "row_count": 1,
+      "total_probability": 0.01
+    }
+  ],
+  "simulation": {
+    "guaranteed_row_ids": [],
+    "independent_sections": [],
+    "exclusive_sections": [
+      {
+        "label": "Main pool",
+        "row_ids": [
+          "Drops::jal-nib-rek::1/100"
+        ],
+        "total_probability": null
+      }
+    ],
+    "note": "Simulation uses wiki-listed per-row rarities. Activities with custom multi-roll reward systems remain approximations."
+  },
+  "fetched_at": "2026-03-19T04:44:58.103501+00:00"
+}

@@ -1,0 +1,110 @@
+{
+  "name": "TzTok-Jad",
+  "slug": "tztok-jad",
+  "table_id": 80,
+  "hiscores_url": "https://secure.runescape.com/m=hiscore_oldschool/overall?category_type=1&table=80",
+  "wiki_page": "TzTok-Jad",
+  "wiki_url": "https://oldschool.runescape.wiki/w/TzTok-Jad",
+  "wiki_sections": [
+    "Drops",
+    "Rewards"
+  ],
+  "activity_image_path": "assets/activities/tztok-jad.png",
+  "supported": true,
+  "note": null,
+  "simulation_disabled": false,
+  "leaderboard_path": "data/leaderboards/tztok-jad.json",
+  "leaderboard_preview": [
+    {
+      "rank": 1,
+      "name": "Randalicious",
+      "score": 1998
+    },
+    {
+      "rank": 2,
+      "name": "Pahizz",
+      "score": 807
+    },
+    {
+      "rank": 3,
+      "name": "Number1 Bass",
+      "score": 726
+    },
+    {
+      "rank": 4,
+      "name": "Rigondead",
+      "score": 697
+    },
+    {
+      "rank": 5,
+      "name": "99 rwt",
+      "score": 566
+    },
+    {
+      "rank": 6,
+      "name": "IronQueen",
+      "score": 555
+    },
+    {
+      "rank": 7,
+      "name": "XP Jake",
+      "score": 545
+    },
+    {
+      "rank": 8,
+      "name": "ka vi",
+      "score": 543
+    },
+    {
+      "rank": 9,
+      "name": "Keen68",
+      "score": 540
+    },
+    {
+      "rank": 10,
+      "name": "jad is fun",
+      "score": 539
+    }
+  ],
+  "drop_rows": [
+    {
+      "item_name": "Tzrek-jad",
+      "item_slug": "tzrek-jad",
+      "item_page": "https://oldschool.runescape.wiki/w/Tzrek-jad",
+      "item_asset_path": "assets/items/tzrek-jad.png",
+      "section": "Tertiary",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/200",
+      "rarity_percent": "0.5",
+      "probability": 0.005,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": null,
+      "ha_unit_estimate": null,
+      "row_id": "Tertiary::tzrek-jad::1/200"
+    }
+  ],
+  "variants": [],
+  "sections": [
+    {
+      "name": "Tertiary",
+      "row_count": 1,
+      "total_probability": 0.005
+    }
+  ],
+  "simulation": {
+    "guaranteed_row_ids": [],
+    "independent_sections": [
+      {
+        "label": "Tertiary",
+        "row_ids": [
+          "Tertiary::tzrek-jad::1/200"
+        ]
+      }
+    ],
+    "exclusive_sections": [],
+    "note": "Simulation uses wiki-listed per-row rarities. Activities with custom multi-roll reward systems remain approximations."
+  },
+  "fetched_at": "2026-03-19T04:45:00.944720+00:00"
+}

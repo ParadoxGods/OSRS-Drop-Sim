@@ -1,0 +1,76 @@
+{
+  "name": "Sol Heredit",
+  "slug": "sol-heredit",
+  "table_id": 65,
+  "hiscores_url": "https://secure.runescape.com/m=hiscore_oldschool/overall?category_type=1&table=65",
+  "wiki_page": "Fortis Colosseum",
+  "wiki_url": "https://oldschool.runescape.wiki/w/Fortis_Colosseum",
+  "wiki_sections": [],
+  "activity_image_path": "assets/activities/sol-heredit.png",
+  "supported": false,
+  "note": "Sol Heredit rewards are sourced from the Fortis Colosseum reward table.",
+  "simulation_disabled": true,
+  "leaderboard_path": "data/leaderboards/sol-heredit.json",
+  "leaderboard_preview": [
+    {
+      "rank": 1,
+      "name": "Librain",
+      "score": 3887
+    },
+    {
+      "rank": 2,
+      "name": "L0c0 L3",
+      "score": 2864
+    },
+    {
+      "rank": 3,
+      "name": "Dear no one",
+      "score": 2802
+    },
+    {
+      "rank": 4,
+      "name": "Maya Sato",
+      "score": 1761
+    },
+    {
+      "rank": 5,
+      "name": "Ghidorah",
+      "score": 1710
+    },
+    {
+      "rank": 6,
+      "name": "Rowfy",
+      "score": 1511
+    },
+    {
+      "rank": 7,
+      "name": "WsunBillso",
+      "score": 1377
+    },
+    {
+      "rank": 8,
+      "name": "RRevelation",
+      "score": 1344
+    },
+    {
+      "rank": 9,
+      "name": "naturesque",
+      "score": 1315
+    },
+    {
+      "rank": 10,
+      "name": "ayanala",
+      "score": 1292
+    }
+  ],
+  "drop_rows": [],
+  "variants": [],
+  "sections": [],
+  "simulation": {
+    "guaranteed_row_ids": [],
+    "independent_sections": [],
+    "exclusive_sections": [],
+    "note": "Simulation uses wiki-listed per-row rarities. Activities with custom multi-roll reward systems remain approximations."
+  },
+  "fetched_at": "2026-03-19T04:44:22.065322+00:00"
+}

@@ -1,0 +1,254 @@
+{
+  "name": "Theatre of Blood",
+  "slug": "theatre-of-blood",
+  "table_id": 74,
+  "hiscores_url": "https://secure.runescape.com/m=hiscore_oldschool/overall?category_type=1&table=74",
+  "wiki_page": "Monumental chest",
+  "wiki_url": "https://oldschool.runescape.wiki/w/Monumental_chest",
+  "wiki_sections": [
+    "Normal mode"
+  ],
+  "activity_image_path": "assets/activities/theatre-of-blood.png",
+  "supported": true,
+  "note": null,
+  "simulation_disabled": false,
+  "leaderboard_path": "data/leaderboards/theatre-of-blood.json",
+  "leaderboard_preview": [
+    {
+      "rank": 1,
+      "name": "incant",
+      "score": 14067
+    },
+    {
+      "rank": 2,
+      "name": "Aegon",
+      "score": 13808
+    },
+    {
+      "rank": 3,
+      "name": "fuggle",
+      "score": 12734
+    },
+    {
+      "rank": 4,
+      "name": "Zikzuk",
+      "score": 11568
+    },
+    {
+      "rank": 5,
+      "name": "zW Karmish",
+      "score": 11147
+    },
+    {
+      "rank": 6,
+      "name": "niko",
+      "score": 10719
+    },
+    {
+      "rank": 7,
+      "name": "Mady",
+      "score": 10106
+    },
+    {
+      "rank": 8,
+      "name": "Unluckers",
+      "score": 10021
+    },
+    {
+      "rank": 9,
+      "name": "nicky",
+      "score": 9805
+    },
+    {
+      "rank": 10,
+      "name": "Adriatik",
+      "score": 9531
+    }
+  ],
+  "drop_rows": [
+    {
+      "item_name": "Cabbage",
+      "item_slug": "cabbage",
+      "item_page": "https://oldschool.runescape.wiki/w/Cabbage",
+      "item_asset_path": "assets/items/cabbage.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": null,
+      "rarity_percent": null,
+      "probability": null,
+      "ge_value": 6,
+      "ge_unit_estimate": 6,
+      "ha_value": 0,
+      "ha_unit_estimate": null,
+      "row_id": "Normal mode::cabbage::None"
+    },
+    {
+      "item_name": "Message (Theatre of Blood)",
+      "item_slug": "message-theatre-of-blood",
+      "item_page": "https://oldschool.runescape.wiki/w/Message_(Theatre_of_Blood)",
+      "item_asset_path": "assets/items/message-theatre-of-blood.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": null,
+      "rarity_percent": null,
+      "probability": null,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": 0,
+      "ha_unit_estimate": null,
+      "row_id": "Normal mode::message-theatre-of-blood::None"
+    },
+    {
+      "item_name": "Avernic defender hilt",
+      "item_slug": "avernic-defender-hilt",
+      "item_page": "https://oldschool.runescape.wiki/w/Avernic_defender_hilt",
+      "item_asset_path": "assets/items/avernic-defender-hilt.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "8/19",
+      "rarity_percent": "42.1",
+      "probability": 0.42105263157894735,
+      "ge_value": 39152088,
+      "ge_unit_estimate": 39152088,
+      "ha_value": 1500000,
+      "ha_unit_estimate": 1500000,
+      "row_id": "Normal mode::avernic-defender-hilt::8/19"
+    },
+    {
+      "item_name": "Ghrazi rapier",
+      "item_slug": "ghrazi-rapier",
+      "item_page": "https://oldschool.runescape.wiki/w/Ghrazi_rapier",
+      "item_asset_path": "assets/items/ghrazi-rapier.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/19",
+      "rarity_percent": "10.5",
+      "probability": 0.10526315789473684,
+      "ge_value": 28200241,
+      "ge_unit_estimate": 28200241,
+      "ha_value": 3000000,
+      "ha_unit_estimate": 3000000,
+      "row_id": "Normal mode::ghrazi-rapier::2/19"
+    },
+    {
+      "item_name": "Sanguinesti staff (uncharged)",
+      "item_slug": "sanguinesti-staff-uncharged",
+      "item_page": "https://oldschool.runescape.wiki/w/Sanguinesti_staff_(uncharged)",
+      "item_asset_path": "assets/items/sanguinesti-staff-uncharged.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/19",
+      "rarity_percent": "10.5",
+      "probability": 0.10526315789473684,
+      "ge_value": 17156331,
+      "ge_unit_estimate": 17156331,
+      "ha_value": 3000000,
+      "ha_unit_estimate": 3000000,
+      "row_id": "Normal mode::sanguinesti-staff-uncharged::2/19"
+    },
+    {
+      "item_name": "Justiciar faceguard",
+      "item_slug": "justiciar-faceguard",
+      "item_page": "https://oldschool.runescape.wiki/w/Justiciar_faceguard",
+      "item_asset_path": "assets/items/justiciar-faceguard.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/19",
+      "rarity_percent": "10.5",
+      "probability": 0.10526315789473684,
+      "ge_value": 12506590,
+      "ge_unit_estimate": 12506590,
+      "ha_value": 1200000,
+      "ha_unit_estimate": 1200000,
+      "row_id": "Normal mode::justiciar-faceguard::2/19"
+    },
+    {
+      "item_name": "Justiciar chestguard",
+      "item_slug": "justiciar-chestguard",
+      "item_page": "https://oldschool.runescape.wiki/w/Justiciar_chestguard",
+      "item_asset_path": "assets/items/justiciar-chestguard.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/19",
+      "rarity_percent": "10.5",
+      "probability": 0.10526315789473684,
+      "ge_value": 11299201,
+      "ge_unit_estimate": 11299201,
+      "ha_value": 3600000,
+      "ha_unit_estimate": 3600000,
+      "row_id": "Normal mode::justiciar-chestguard::2/19"
+    },
+    {
+      "item_name": "Justiciar legguards",
+      "item_slug": "justiciar-legguards",
+      "item_page": "https://oldschool.runescape.wiki/w/Justiciar_legguards",
+      "item_asset_path": "assets/items/justiciar-legguards.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/19",
+      "rarity_percent": "10.5",
+      "probability": 0.10526315789473684,
+      "ge_value": 9227544,
+      "ge_unit_estimate": 9227544,
+      "ha_value": 2700000,
+      "ha_unit_estimate": 2700000,
+      "row_id": "Normal mode::justiciar-legguards::2/19"
+    },
+    {
+      "item_name": "Scythe of vitur (uncharged)",
+      "item_slug": "scythe-of-vitur-uncharged",
+      "item_page": "https://oldschool.runescape.wiki/w/Scythe_of_vitur_(uncharged)",
+      "item_asset_path": "assets/items/scythe-of-vitur-uncharged.png",
+      "section": "Normal mode",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/19",
+      "rarity_percent": "5.26",
+      "probability": 0.05263157894736842,
+      "ge_value": 1591008855,
+      "ge_unit_estimate": 1591008855,
+      "ha_value": 2400000,
+      "ha_unit_estimate": 2400000,
+      "row_id": "Normal mode::scythe-of-vitur-uncharged::1/19"
+    }
+  ],
+  "variants": [],
+  "sections": [
+    {
+      "name": "Normal mode",
+      "row_count": 9,
+      "total_probability": 1.0
+    }
+  ],
+  "simulation": {
+    "guaranteed_row_ids": [],
+    "independent_sections": [],
+    "exclusive_sections": [
+      {
+        "label": "Normal mode",
+        "row_ids": [
+          "Normal mode::cabbage::None",
+          "Normal mode::message-theatre-of-blood::None",
+          "Normal mode::avernic-defender-hilt::8/19",
+          "Normal mode::ghrazi-rapier::2/19",
+          "Normal mode::sanguinesti-staff-uncharged::2/19",
+          "Normal mode::justiciar-faceguard::2/19",
+          "Normal mode::justiciar-chestguard::2/19",
+          "Normal mode::justiciar-legguards::2/19",
+          "Normal mode::scythe-of-vitur-uncharged::1/19"
+        ],
+        "total_probability": 1.0
+      }
+    ],
+    "note": "Simulation uses wiki-listed per-row rarities. Activities with custom multi-roll reward systems remain approximations."
+  },
+  "fetched_at": "2026-03-19T04:44:45.166073+00:00"
+}

@@ -1,0 +1,589 @@
+{
+  "name": "Brutus",
+  "slug": "brutus",
+  "table_id": 26,
+  "hiscores_url": "https://secure.runescape.com/m=hiscore_oldschool/overall?category_type=1&table=26",
+  "wiki_page": "Brutus",
+  "wiki_url": "https://oldschool.runescape.wiki/w/Brutus",
+  "wiki_sections": [
+    "Drops"
+  ],
+  "activity_image_path": "assets/activities/brutus.png",
+  "supported": true,
+  "note": null,
+  "simulation_disabled": false,
+  "leaderboard_path": "data/leaderboards/brutus.json",
+  "leaderboard_preview": [
+    {
+      "rank": 1,
+      "name": "Dr Boobies",
+      "score": 48040
+    },
+    {
+      "rank": 2,
+      "name": "GR0G",
+      "score": 40848
+    },
+    {
+      "rank": 3,
+      "name": "Jillyfish",
+      "score": 40684
+    },
+    {
+      "rank": 4,
+      "name": "WifeWacker",
+      "score": 33470
+    },
+    {
+      "rank": 5,
+      "name": "Tam k0nijn",
+      "score": 32645
+    },
+    {
+      "rank": 6,
+      "name": "Lemkz",
+      "score": 24344
+    },
+    {
+      "rank": 7,
+      "name": "Zaaj",
+      "score": 22988
+    },
+    {
+      "rank": 8,
+      "name": "Randalicious",
+      "score": 22862
+    },
+    {
+      "rank": 9,
+      "name": "Alone Yankin",
+      "score": 22179
+    },
+    {
+      "rank": 10,
+      "name": "Few Word",
+      "score": 20000
+    }
+  ],
+  "drop_rows": [
+    {
+      "item_name": "Bull bones",
+      "item_slug": "bull-bones",
+      "item_page": "https://oldschool.runescape.wiki/w/Bull_bones",
+      "item_asset_path": "assets/items/bull-bones.png",
+      "section": "100%",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "Always",
+      "rarity_percent": null,
+      "probability": 1.0,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": 0,
+      "ha_unit_estimate": null,
+      "row_id": "100%::bull-bones::Always"
+    },
+    {
+      "item_name": "Raw t-bone steak",
+      "item_slug": "raw-t-bone-steak",
+      "item_page": "https://oldschool.runescape.wiki/w/Raw_t-bone_steak",
+      "item_asset_path": "assets/items/raw-t-bone-steak.png",
+      "section": "100%",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "Always",
+      "rarity_percent": null,
+      "probability": 1.0,
+      "ge_value": 293,
+      "ge_unit_estimate": 293,
+      "ha_value": 6,
+      "ha_unit_estimate": 6,
+      "row_id": "100%::raw-t-bone-steak::Always"
+    },
+    {
+      "item_name": "Mooleta",
+      "item_slug": "mooleta",
+      "item_page": "https://oldschool.runescape.wiki/w/Mooleta",
+      "item_asset_path": "assets/items/mooleta.png",
+      "section": "Pre-roll",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "5/150",
+      "rarity_percent": "3.33",
+      "probability": 0.03333333333333333,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": 0,
+      "ha_unit_estimate": null,
+      "row_id": "Pre-roll::mooleta::5/150"
+    },
+    {
+      "item_name": "Bottomless milk bucket (empty)",
+      "item_slug": "bottomless-milk-bucket-empty",
+      "item_page": "https://oldschool.runescape.wiki/w/Bottomless_milk_bucket_(empty)",
+      "item_asset_path": "assets/items/bottomless-milk-bucket-empty.png",
+      "section": "Pre-roll",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "4/150",
+      "rarity_percent": "2.67",
+      "probability": 0.02666666666666667,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": 9000,
+      "ha_unit_estimate": 9000,
+      "row_id": "Pre-roll::bottomless-milk-bucket-empty::4/150"
+    },
+    {
+      "item_name": "Cow slippers",
+      "item_slug": "cow-slippers",
+      "item_page": "https://oldschool.runescape.wiki/w/Cow_slippers",
+      "item_asset_path": "assets/items/cow-slippers.png",
+      "section": "Pre-roll",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/150",
+      "rarity_percent": "0.667",
+      "probability": 0.006666666666666667,
+      "ge_value": 34068,
+      "ge_unit_estimate": 34068,
+      "ha_value": 600,
+      "ha_unit_estimate": 600,
+      "row_id": "Pre-roll::cow-slippers::1/150"
+    },
+    {
+      "item_name": "Iron full helm",
+      "item_slug": "iron-full-helm",
+      "item_page": "https://oldschool.runescape.wiki/w/Iron_full_helm",
+      "item_asset_path": "assets/items/iron-full-helm.png",
+      "section": "Armour",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/81",
+      "rarity_percent": "2.47",
+      "probability": 0.024691358024691357,
+      "ge_value": 74,
+      "ge_unit_estimate": 74,
+      "ha_value": 92,
+      "ha_unit_estimate": 92,
+      "row_id": "Armour::iron-full-helm::2/81"
+    },
+    {
+      "item_name": "Iron platebody",
+      "item_slug": "iron-platebody",
+      "item_page": "https://oldschool.runescape.wiki/w/Iron_platebody",
+      "item_asset_path": "assets/items/iron-platebody.png",
+      "section": "Armour",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "2/81",
+      "rarity_percent": "2.47",
+      "probability": 0.024691358024691357,
+      "ge_value": 122,
+      "ge_unit_estimate": 122,
+      "ha_value": 336,
+      "ha_unit_estimate": 336,
+      "row_id": "Armour::iron-platebody::2/81"
+    },
+    {
+      "item_name": "Iron platelegs",
+      "item_slug": "iron-platelegs",
+      "item_page": "https://oldschool.runescape.wiki/w/Iron_platelegs",
+      "item_asset_path": "assets/items/iron-platelegs.png",
+      "section": "Armour",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/81",
+      "rarity_percent": "1.23",
+      "probability": 0.012345679012345678,
+      "ge_value": 72,
+      "ge_unit_estimate": 72,
+      "ha_value": 168,
+      "ha_unit_estimate": 168,
+      "row_id": "Armour::iron-platelegs::1/81"
+    },
+    {
+      "item_name": "Iron plateskirt",
+      "item_slug": "iron-plateskirt",
+      "item_page": "https://oldschool.runescape.wiki/w/Iron_plateskirt",
+      "item_asset_path": "assets/items/iron-plateskirt.png",
+      "section": "Armour",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/81",
+      "rarity_percent": "1.23",
+      "probability": 0.012345679012345678,
+      "ge_value": 45,
+      "ge_unit_estimate": 45,
+      "ha_value": 168,
+      "ha_unit_estimate": 168,
+      "row_id": "Armour::iron-plateskirt::1/81"
+    },
+    {
+      "item_name": "Iron arrow",
+      "item_slug": "iron-arrow",
+      "item_page": "https://oldschool.runescape.wiki/w/Iron_arrow",
+      "item_asset_path": "assets/items/iron-arrow.png",
+      "section": "Runes and ammunition",
+      "quantity_text": "14",
+      "quantity_estimate": 14.0,
+      "rarity_fraction": "10/81",
+      "rarity_percent": "12.3",
+      "probability": 0.12345679012345678,
+      "ge_value": 112,
+      "ge_unit_estimate": 8,
+      "ha_value": 14,
+      "ha_unit_estimate": 1,
+      "row_id": "Runes and ammunition::iron-arrow::10/81"
+    },
+    {
+      "item_name": "Air rune",
+      "item_slug": "air-rune",
+      "item_page": "https://oldschool.runescape.wiki/w/Air_rune",
+      "item_asset_path": "assets/items/air-rune.png",
+      "section": "Runes and ammunition",
+      "quantity_text": "29",
+      "quantity_estimate": 29.0,
+      "rarity_fraction": "10/81",
+      "rarity_percent": "12.3",
+      "probability": 0.12345679012345678,
+      "ge_value": 145,
+      "ge_unit_estimate": 5,
+      "ha_value": 58,
+      "ha_unit_estimate": 2,
+      "row_id": "Runes and ammunition::air-rune::10/81"
+    },
+    {
+      "item_name": "Mind rune",
+      "item_slug": "mind-rune",
+      "item_page": "https://oldschool.runescape.wiki/w/Mind_rune",
+      "item_asset_path": "assets/items/mind-rune.png",
+      "section": "Runes and ammunition",
+      "quantity_text": "18",
+      "quantity_estimate": 18.0,
+      "rarity_fraction": "8/81",
+      "rarity_percent": "9.88",
+      "probability": 0.09876543209876543,
+      "ge_value": 54,
+      "ge_unit_estimate": 3,
+      "ha_value": 18,
+      "ha_unit_estimate": 1,
+      "row_id": "Runes and ammunition::mind-rune::8/81"
+    },
+    {
+      "item_name": "Chaos rune",
+      "item_slug": "chaos-rune",
+      "item_page": "https://oldschool.runescape.wiki/w/Chaos_rune",
+      "item_asset_path": "assets/items/chaos-rune.png",
+      "section": "Runes and ammunition",
+      "quantity_text": "12",
+      "quantity_estimate": 12.0,
+      "rarity_fraction": "2/81",
+      "rarity_percent": "2.47",
+      "probability": 0.024691358024691357,
+      "ge_value": 1164,
+      "ge_unit_estimate": 97,
+      "ha_value": 648,
+      "ha_unit_estimate": 54,
+      "row_id": "Runes and ammunition::chaos-rune::2/81"
+    },
+    {
+      "item_name": "Potato seed",
+      "item_slug": "potato-seed",
+      "item_page": "https://oldschool.runescape.wiki/w/Potato_seed",
+      "item_asset_path": "assets/items/potato-seed.png",
+      "section": "Seeds",
+      "quantity_text": "3",
+      "quantity_estimate": 3.0,
+      "rarity_fraction": "10/81",
+      "rarity_percent": "12.3",
+      "probability": 0.12345679012345678,
+      "ge_value": 6,
+      "ge_unit_estimate": 2,
+      "ha_value": 3,
+      "ha_unit_estimate": 1,
+      "row_id": "Seeds::potato-seed::10/81"
+    },
+    {
+      "item_name": "Acorn",
+      "item_slug": "acorn",
+      "item_page": "https://oldschool.runescape.wiki/w/Acorn",
+      "item_asset_path": "assets/items/acorn.png",
+      "section": "Seeds",
+      "quantity_text": "2",
+      "quantity_estimate": 2.0,
+      "rarity_fraction": "5/81",
+      "rarity_percent": "6.17",
+      "probability": 0.06172839506172839,
+      "ge_value": 170,
+      "ge_unit_estimate": 85,
+      "ha_value": 6,
+      "ha_unit_estimate": 3,
+      "row_id": "Seeds::acorn::5/81"
+    },
+    {
+      "item_name": "Raw t-bone steak",
+      "item_slug": "raw-t-bone-steak",
+      "item_page": "https://oldschool.runescape.wiki/w/Raw_t-bone_steak",
+      "item_asset_path": "assets/items/raw-t-bone-steak.png",
+      "section": "Resources",
+      "quantity_text": "3 (noted)",
+      "quantity_estimate": 3.0,
+      "rarity_fraction": "10/81",
+      "rarity_percent": "12.3",
+      "probability": 0.12345679012345678,
+      "ge_value": 879,
+      "ge_unit_estimate": 293,
+      "ha_value": 18,
+      "ha_unit_estimate": 6,
+      "row_id": "Resources::raw-t-bone-steak::10/81"
+    },
+    {
+      "item_name": "Cowhide",
+      "item_slug": "cowhide",
+      "item_page": "https://oldschool.runescape.wiki/w/Cowhide",
+      "item_asset_path": "assets/items/cowhide.png",
+      "section": "Resources",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "10/81",
+      "rarity_percent": "12.3",
+      "probability": 0.12345679012345678,
+      "ge_value": 137,
+      "ge_unit_estimate": 137,
+      "ha_value": 1,
+      "ha_unit_estimate": 1,
+      "row_id": "Resources::cowhide::10/81"
+    },
+    {
+      "item_name": "Oak logs",
+      "item_slug": "oak-logs",
+      "item_page": "https://oldschool.runescape.wiki/w/Oak_logs",
+      "item_asset_path": "assets/items/oak-logs.png",
+      "section": "Resources",
+      "quantity_text": "2",
+      "quantity_estimate": 2.0,
+      "rarity_fraction": "5/81",
+      "rarity_percent": "6.17",
+      "probability": 0.06172839506172839,
+      "ge_value": 46,
+      "ge_unit_estimate": 23,
+      "ha_value": 24,
+      "ha_unit_estimate": 12,
+      "row_id": "Resources::oak-logs::5/81"
+    },
+    {
+      "item_name": "Logs",
+      "item_slug": "logs",
+      "item_page": "https://oldschool.runescape.wiki/w/Logs",
+      "item_asset_path": "assets/items/logs.png",
+      "section": "Resources",
+      "quantity_text": "2",
+      "quantity_estimate": 2.0,
+      "rarity_fraction": "5/81",
+      "rarity_percent": "6.17",
+      "probability": 0.06172839506172839,
+      "ge_value": 36,
+      "ge_unit_estimate": 18,
+      "ha_value": 4,
+      "ha_unit_estimate": 2,
+      "row_id": "Resources::logs::5/81"
+    },
+    {
+      "item_name": "Coins",
+      "item_slug": "coins",
+      "item_page": "https://oldschool.runescape.wiki/w/Coins",
+      "item_asset_path": "assets/items/coins.png",
+      "section": "Other",
+      "quantity_text": "60\u201380",
+      "quantity_estimate": 70.0,
+      "rarity_fraction": "15/81",
+      "rarity_percent": "18.5",
+      "probability": 0.18518518518518517,
+      "ge_value": 60,
+      "ge_unit_estimate": 1,
+      "ha_value": 60,
+      "ha_unit_estimate": 1,
+      "row_id": "Other::coins::15/81"
+    },
+    {
+      "item_name": "Coins",
+      "item_slug": "coins",
+      "item_page": "https://oldschool.runescape.wiki/w/Coins",
+      "item_asset_path": "assets/items/coins.png",
+      "section": "Other",
+      "quantity_text": "80\u2013100",
+      "quantity_estimate": 90.0,
+      "rarity_fraction": "5/81",
+      "rarity_percent": "6.17",
+      "probability": 0.06172839506172839,
+      "ge_value": 80,
+      "ge_unit_estimate": 1,
+      "ha_value": 80,
+      "ha_unit_estimate": 1,
+      "row_id": "Other::coins::5/81"
+    },
+    {
+      "item_name": "Coins",
+      "item_slug": "coins",
+      "item_page": "https://oldschool.runescape.wiki/w/Coins",
+      "item_asset_path": "assets/items/coins.png",
+      "section": "Other",
+      "quantity_text": "100\u2013120",
+      "quantity_estimate": 110.0,
+      "rarity_fraction": "5/81",
+      "rarity_percent": "6.17",
+      "probability": 0.06172839506172839,
+      "ge_value": 100,
+      "ge_unit_estimate": 1,
+      "ha_value": 100,
+      "ha_unit_estimate": 1,
+      "row_id": "Other::coins::5/81"
+    },
+    {
+      "item_name": "Clue scroll (beginner)",
+      "item_slug": "clue-scroll-beginner",
+      "item_page": "https://oldschool.runescape.wiki/w/Clue_scroll_(beginner)",
+      "item_asset_path": "assets/items/clue-scroll-beginner.png",
+      "section": "Tertiary",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/15",
+      "rarity_percent": "6.67",
+      "probability": 0.06666666666666667,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": 12,
+      "ha_unit_estimate": 12,
+      "row_id": "Tertiary::clue-scroll-beginner::1/15"
+    },
+    {
+      "item_name": "Clue scroll (easy)",
+      "item_slug": "clue-scroll-easy",
+      "item_page": "https://oldschool.runescape.wiki/w/Clue_scroll_(easy)",
+      "item_asset_path": "assets/items/clue-scroll-easy.png",
+      "section": "Tertiary",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/40",
+      "rarity_percent": "2.5",
+      "probability": 0.025,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": 12,
+      "ha_unit_estimate": 12,
+      "row_id": "Tertiary::clue-scroll-easy::1/40"
+    },
+    {
+      "item_name": "Beef",
+      "item_slug": "beef",
+      "item_page": "https://oldschool.runescape.wiki/w/Beef",
+      "item_asset_path": "assets/items/beef.png",
+      "section": "Tertiary",
+      "quantity_text": "1",
+      "quantity_estimate": 1.0,
+      "rarity_fraction": "1/1,000",
+      "rarity_percent": "0.1",
+      "probability": 0.001,
+      "ge_value": null,
+      "ge_unit_estimate": null,
+      "ha_value": null,
+      "ha_unit_estimate": null,
+      "row_id": "Tertiary::beef::1/1,000"
+    }
+  ],
+  "variants": [],
+  "sections": [
+    {
+      "name": "100%",
+      "row_count": 2,
+      "total_probability": 2.0
+    },
+    {
+      "name": "Armour",
+      "row_count": 4,
+      "total_probability": 0.07407407407407407
+    },
+    {
+      "name": "Other",
+      "row_count": 3,
+      "total_probability": 0.30864197530864196
+    },
+    {
+      "name": "Pre-roll",
+      "row_count": 3,
+      "total_probability": 0.06666666666666667
+    },
+    {
+      "name": "Resources",
+      "row_count": 4,
+      "total_probability": 0.37037037037037035
+    },
+    {
+      "name": "Runes and ammunition",
+      "row_count": 4,
+      "total_probability": 0.37037037037037035
+    },
+    {
+      "name": "Seeds",
+      "row_count": 2,
+      "total_probability": 0.18518518518518517
+    },
+    {
+      "name": "Tertiary",
+      "row_count": 3,
+      "total_probability": 0.09266666666666666
+    }
+  ],
+  "simulation": {
+    "guaranteed_row_ids": [
+      "100%::bull-bones::Always",
+      "100%::raw-t-bone-steak::Always"
+    ],
+    "independent_sections": [
+      {
+        "label": "Pre-roll",
+        "row_ids": [
+          "Pre-roll::mooleta::5/150",
+          "Pre-roll::bottomless-milk-bucket-empty::4/150",
+          "Pre-roll::cow-slippers::1/150"
+        ]
+      },
+      {
+        "label": "Tertiary",
+        "row_ids": [
+          "Tertiary::clue-scroll-beginner::1/15",
+          "Tertiary::clue-scroll-easy::1/40",
+          "Tertiary::beef::1/1,000"
+        ]
+      }
+    ],
+    "exclusive_sections": [
+      {
+        "label": "Main pool",
+        "row_ids": [
+          "Armour::iron-full-helm::2/81",
+          "Armour::iron-platebody::2/81",
+          "Armour::iron-platelegs::1/81",
+          "Armour::iron-plateskirt::1/81",
+          "Runes and ammunition::iron-arrow::10/81",
+          "Runes and ammunition::air-rune::10/81",
+          "Runes and ammunition::mind-rune::8/81",
+          "Runes and ammunition::chaos-rune::2/81",
+          "Seeds::potato-seed::10/81",
+          "Seeds::acorn::5/81",
+          "Resources::raw-t-bone-steak::10/81",
+          "Resources::cowhide::10/81",
+          "Resources::oak-logs::5/81",
+          "Resources::logs::5/81",
+          "Other::coins::15/81",
+          "Other::coins::5/81",
+          "Other::coins::5/81"
+        ],
+        "total_probability": null
+      }
+    ],
+    "note": "Simulation uses wiki-listed per-row rarities. Activities with custom multi-roll reward systems remain approximations."
+  },
+  "fetched_at": "2026-03-19T04:42:34.549156+00:00"
+}
