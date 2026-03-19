@@ -202,7 +202,10 @@ function getActiveActivityView(activity = state.selectedActivity) {
 }
 
 function renderActivityHeader(activity, view = getActiveActivityView(activity)) {
-  elements.activityPickerTrigger.textContent = activity.name || "Select an activity";
+  const label = activity.name || "Select an activity";
+  elements.activityPickerTrigger.textContent = label;
+  elements.activityPickerTrigger.title = `Click ${label} to change the activity`;
+  elements.activityPickerTrigger.setAttribute("aria-label", `Click ${label} to change the activity`);
   elements.activityMeta.innerHTML = "";
   [
     (view?.wiki_page || activity.wiki_page) ? `Wiki: ${view?.wiki_page || activity.wiki_page}` : null,
