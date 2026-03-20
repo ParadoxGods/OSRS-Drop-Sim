@@ -145,6 +145,43 @@ const RAID_TYPES = {
   tob: new Set(["theatre-of-blood", "theatre-of-blood-hard-mode"]),
 };
 
+const CLUE_UI_DETAILS = {
+  "clue-scrolls-beginner": {
+    rewardRolls: "1-3 rewards",
+    helpText: "Beginner caskets roll 1-3 reward slots and do not have master clue or Mimic bonus rolls.",
+  },
+  "clue-scrolls-easy": {
+    rewardRolls: "2-4 rewards",
+    tertiary: "Master clue 1/50",
+    helpText: "Easy caskets roll 2-4 reward slots and add an independent 1/50 master clue roll outside the base reward slots.",
+  },
+  "clue-scrolls-medium": {
+    rewardRolls: "3-5 rewards",
+    tertiary: "Master clue 1/30",
+    helpText: "Medium caskets roll 3-5 reward slots and add an independent 1/30 master clue roll outside the base reward slots.",
+  },
+  "clue-scrolls-hard": {
+    rewardRolls: "4-6 rewards",
+    tertiary: "Master clue 1/15",
+    helpText: "Hard caskets roll 4-6 reward slots and add an independent 1/15 master clue roll outside the base reward slots.",
+  },
+  "clue-scrolls-elite": {
+    rewardRolls: "4-6 rewards",
+    tertiary: "Master clue 1/5",
+    mimic: "Mimic casket 1/35",
+    helpText: "Elite caskets roll 4-6 reward slots, add an independent 1/5 master clue roll, and can optionally add a bonus 1/35 Mimic casket.",
+  },
+  "clue-scrolls-master": {
+    rewardRolls: "5-7 rewards",
+    tertiary: "Bloodhound 1/1,000",
+    mimic: "Mimic casket 1/15",
+    helpText: "Master caskets roll 5-7 reward slots, add an independent 1/1,000 Bloodhound roll, and can optionally add a bonus 1/15 Mimic casket.",
+  },
+  mimic: {
+    helpText: "A Mimic kill adds one bonus reward bundle on top of the original elite or master clue reward rolls. The attempt count controls the quantity reduction.",
+  },
+};
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -239,6 +276,10 @@ function getActivityTileMeta(activity) {
     return `${raidType.toUpperCase()} model`;
   }
   return activity.supported ? "Sim-ready" : "Reference only";
+}
+
+function getClueUiDetails(slug) {
+  return CLUE_UI_DETAILS[slug] || null;
 }
 
 function matchesActivityFilter(activity, query) {
@@ -403,8 +444,12 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
   if (getRaidType(activity.slug)) {
     chips.push("Raid-specific reward model");
   }
-  if (activity.slug === "clue-scrolls-elite" || activity.slug === "clue-scrolls-master") {
-    chips.push("Optional Mimic branch");
+  const clueUiDetails = getClueUiDetails(activity.slug);
+  if (clueUiDetails?.tertiary) {
+    chips.push(clueUiDetails.tertiary);
+  }
+  if (clueUiDetails?.mimic) {
+    chips.push(`Optional ${clueUiDetails.mimic}`);
   }
 
   elements.activityMeta.innerHTML = chips
@@ -490,6 +535,7 @@ function renderSimulationState(activity) {
   const disabled = !activity.supported || activity.simulation_disabled;
   const raidType = getRaidType(rootSlug);
   const clueTier = getEffectiveClueTier(rootSlug, activity);
+  const clueUiDetails = getClueUiDetails(rootSlug);
   const rollRange = activity.simulation?.reward_roll_range;
   const isTargetMode = state.simulationMode === "target";
   const hasEncounterSettings = Boolean(clueTier || raidType);
@@ -520,7 +566,7 @@ function renderSimulationState(activity) {
     } else if (rootSlug === "mimic") {
       summary = "Encounter settings: Mimic attempt";
     } else if (clueTier) {
-      summary = "Encounter settings: Mimic branch";
+      summary = "Encounter settings: optional Mimic casket";
     }
     elements.encounterSettingsSummary.textContent = summary;
   }
@@ -555,8 +601,10 @@ function renderSimulationState(activity) {
     helpText = `${helpText} Open encounter settings to set raid level and loot points.`;
   } else if (raidType === "tob") {
     helpText = `${helpText} Open encounter settings to set team size, deaths, and hard mode timing.`;
+  } else if (clueUiDetails && rootSlug !== "mimic") {
+    helpText = `${helpText} ${clueUiDetails.helpText}`;
   } else if (rootSlug === "mimic") {
-    helpText = `${helpText} Open encounter settings to adjust the Mimic clear attempt.`;
+    helpText = `${helpText} ${CLUE_UI_DETAILS.mimic.helpText} Open encounter settings to adjust the Mimic attempts used.`;
   } else if (rollRange) {
     helpText = `${helpText} This activity rolls ${rollRange.min}-${rollRange.max} reward slots per completion.`;
   }
@@ -668,10 +716,21 @@ function renderRunSummary() {
     cards.push(buildSummaryCard("Attempts", formatNumber(options.kills)));
   }
 
+  const clueUiDetails = getClueUiDetails(rootSlug);
+  if (clueUiDetails?.rewardRolls) {
+    cards.push(buildSummaryCard("Reward rolls", clueUiDetails.rewardRolls));
+  }
+  if (clueUiDetails?.tertiary) {
+    cards.push(buildSummaryCard("Extra roll", clueUiDetails.tertiary));
+  }
+
   if (rootSlug === "mimic" || rootSlug === "clue-scrolls-elite" || rootSlug === "clue-scrolls-master") {
     cards.push(buildSummaryCard("Mimic attempt", formatNumber(options.clue_mimic_attempts || 1)));
     if (rootSlug !== "mimic") {
       cards.push(buildSummaryCard("Mimic branch", options.clue_mimic_enabled ? "Enabled" : "Disabled"));
+      if (options.clue_mimic_enabled && clueUiDetails?.mimic) {
+        cards.push(buildSummaryCard("Mimic chance", clueUiDetails.mimic));
+      }
     }
   }
 

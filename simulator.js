@@ -46,7 +46,8 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function pickExclusiveItem(rows, rng) {
+function pickExclusiveItem(rows, rng, options = {}) {
+  const { normalizeNearUnity = false } = options;
   const usableRows = rows.filter((row) => row.probability && row.probability > 0);
   if (!usableRows.length) {
     return null;
@@ -55,7 +56,7 @@ function pickExclusiveItem(rows, rng) {
   const totalProbability = usableRows.reduce((sum, row) => sum + row.probability, 0);
   let threshold;
   if (totalProbability < 1) {
-    if (rng() > totalProbability) {
+    if (!normalizeNearUnity && rng() > totalProbability) {
       return null;
     }
     threshold = rng() * totalProbability;
@@ -1034,7 +1035,9 @@ export function simulateActivity(activityData, options = {}) {
         continue;
       }
       for (let roll = 0; roll < rolls; roll += 1) {
-        const picked = pickExclusiveItem(sectionRows, rng);
+        const picked = pickExclusiveItem(sectionRows, rng, {
+          normalizeNearUnity: sectionMeta.label === "Main pool" && Boolean(simulation.reward_roll_range) && sectionRows.length > 0,
+        });
         if (!picked) {
           continue;
         }
