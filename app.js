@@ -772,7 +772,7 @@ function renderSimulationState(activity) {
   if (isTargetMode) {
     helpText = `Target mode keeps rolling until the selected item count is reached or the cap of ${formatNumber(MAX_SIM_CAP)} attempts is hit.`;
   } else if (isGpMode) {
-    helpText = `GP target mode compares ${formatNumber(getGpEligibleActivities().length)} kill-based bosses and ranks the median simulated KC needed to reach ${formatNumber(clampGpTarget(elements.targetGpValue.value || 1))} gp. Raids, clues, chest runs, wave encounters, and other non-standard kill loops are excluded.`;
+    helpText = `Put in a GP target, hit simulate, and the results view will rank ${formatNumber(getGpEligibleActivities().length)} eligible kill-based bosses by median KC in a horizontal chart. Raids, clues, chest runs, wave encounters, and other non-standard reward loops are excluded.`;
   }
   if (!isGpMode && raidType === "cox") {
     helpText = `${helpText} Open encounter settings to tune point share, CM timing, and clue rate.`;
