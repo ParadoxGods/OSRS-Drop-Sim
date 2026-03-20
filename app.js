@@ -78,6 +78,7 @@ const state = {
   selectedVariantId: null,
   activeResultsTab: "overview",
   simulatorStep: "configure",
+  simulationMode: "fixed",
 };
 
 const elements = {
@@ -101,14 +102,22 @@ const elements = {
   simulateButton: document.getElementById("simulateButton"),
   simulationHelp: document.getElementById("simulationHelp"),
   simulationResults: document.getElementById("simulationResults"),
+  modeFixedButton: document.getElementById("modeFixedButton"),
+  modeTargetButton: document.getElementById("modeTargetButton"),
   variantField: document.getElementById("variantField"),
   variantSelect: document.getElementById("variantSelect"),
+  killsField: document.getElementById("killsField"),
   killsInput: document.getElementById("killsInput"),
+  targetItemField: document.getElementById("targetItemField"),
   targetItem: document.getElementById("targetItem"),
+  targetCountField: document.getElementById("targetCountField"),
   targetCount: document.getElementById("targetCount"),
+  encounterSettings: document.getElementById("encounterSettings"),
+  encounterSettingsSummary: document.querySelector("#encounterSettings summary"),
   clueControls: document.getElementById("clueControls"),
   clueMimicEnabledField: document.getElementById("clueMimicEnabledField"),
   clueMimicEnabled: document.getElementById("clueMimicEnabled"),
+  clueMimicAttemptsField: document.getElementById("clueMimicAttemptsField"),
   clueMimicAttempts: document.getElementById("clueMimicAttempts"),
   raidControls: document.getElementById("raidControls"),
   coxControls: document.getElementById("coxControls"),
@@ -447,7 +456,7 @@ function setSimulationLoading(message) {
 }
 
 function renderTargetOptions(activity) {
-  const options = ['<option value="">Fixed-run simulation</option>'];
+  const options = ['<option value="">Select a target item</option>'];
   const selectedValue = elements.targetItem.value;
 
   getTargetableRows(activity)
@@ -462,20 +471,65 @@ function renderTargetOptions(activity) {
   }
 }
 
+function setSimulationMode(mode) {
+  state.simulationMode = mode === "target" ? "target" : "fixed";
+  const isTargetMode = state.simulationMode === "target";
+  elements.modeFixedButton.classList.toggle("is-active", !isTargetMode);
+  elements.modeTargetButton.classList.toggle("is-active", isTargetMode);
+  elements.modeFixedButton.setAttribute("aria-selected", String(!isTargetMode));
+  elements.modeTargetButton.setAttribute("aria-selected", String(isTargetMode));
+  elements.killsField.hidden = isTargetMode;
+  elements.targetItemField.hidden = !isTargetMode;
+  elements.targetCountField.hidden = !isTargetMode;
+
+  if (state.selectedActivity) {
+    renderSimulationState(getActiveActivityView(state.selectedActivity));
+    if (state.simulatorStep === "review") {
+      renderRunSummary();
+    }
+  }
+}
+
 function renderSimulationState(activity) {
   const rootSlug = state.selectedActivity.slug;
   const disabled = !activity.supported || activity.simulation_disabled;
   const raidType = getRaidType(rootSlug);
   const clueTier = getEffectiveClueTier(rootSlug, activity);
   const rollRange = activity.simulation?.reward_roll_range;
+  const isTargetMode = state.simulationMode === "target";
+  const hasEncounterSettings = Boolean(clueTier || raidType);
 
   elements.simulateButton.disabled = disabled;
   elements.nextStepButton.disabled = disabled;
-  elements.targetItem.disabled = disabled;
-  elements.targetCount.disabled = disabled;
-  elements.killsInput.disabled = disabled;
+  elements.killsField.hidden = isTargetMode;
+  elements.targetItemField.hidden = !isTargetMode;
+  elements.targetCountField.hidden = !isTargetMode;
+  elements.targetItem.disabled = disabled || !isTargetMode;
+  elements.targetCount.disabled = disabled || !isTargetMode;
+  elements.killsInput.disabled = disabled || isTargetMode;
   elements.killsInput.max = String(MAX_SIM_CAP);
   elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
+  elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
+
+  elements.encounterSettings.hidden = !hasEncounterSettings;
+  if (!hasEncounterSettings) {
+    elements.encounterSettings.open = false;
+  }
+  if (hasEncounterSettings) {
+    let summary = "Encounter settings";
+    if (raidType === "cox") {
+      summary = "Encounter settings: points and challenge modifiers";
+    } else if (raidType === "toa") {
+      summary = "Encounter settings: raid level and loot points";
+    } else if (raidType === "tob") {
+      summary = "Encounter settings: team score and hard mode modifiers";
+    } else if (rootSlug === "mimic") {
+      summary = "Encounter settings: Mimic attempt";
+    } else if (clueTier) {
+      summary = "Encounter settings: Mimic branch";
+    }
+    elements.encounterSettingsSummary.textContent = summary;
+  }
 
   elements.clueControls.hidden = !clueTier;
   elements.clueMimicEnabledField.hidden = rootSlug === "mimic";
@@ -489,6 +543,7 @@ function renderSimulationState(activity) {
       elements.clueMimicEnabled.checked = true;
     }
   }
+  elements.clueMimicAttemptsField.hidden = !clueTier || (rootSlug !== "mimic" && !elements.clueMimicEnabled.checked);
 
   elements.raidControls.hidden = !raidType;
   elements.coxControls.hidden = raidType !== "cox";
@@ -497,17 +552,19 @@ function renderSimulationState(activity) {
   elements.coxTimedCmField.hidden = rootSlug !== "chambers-of-xeric-challenge-mode";
   elements.tobTimedHmField.hidden = rootSlug !== "theatre-of-blood-hard-mode";
 
-  let helpText = `Fixed-run mode rolls the selected number of completions. Choose a target item if you want the simulator to chase that drop instead. Target runs stop at a cap of ${formatNumber(MAX_SIM_CAP)}.`;
+  let helpText = isTargetMode
+    ? `Target mode keeps rolling until the selected item count is reached or the cap of ${formatNumber(MAX_SIM_CAP)} attempts is hit.`
+    : "Attempts mode rolls the selected number of completions and shows the final end-state loot.";
   if (raidType === "cox") {
-    helpText = "Purple chance is driven by total raid points, then assigned by personal point share. Common chests roll two distinct items when you miss a personal purple.";
+    helpText = `${helpText} Open encounter settings to tune point share, CM timing, and clue rate.`;
   } else if (raidType === "toa") {
-    helpText = "Purple rate uses raid level and total loot points. Missing a purple gives three common chest rolls unless your personal points fall below the dung threshold.";
+    helpText = `${helpText} Open encounter settings to set raid level and loot points.`;
   } else if (raidType === "tob") {
-    helpText = "ToB uses the OSRS Wiki score calculator model for personal purple chance and scaled common loot quantities.";
+    helpText = `${helpText} Open encounter settings to set team size, deaths, and hard mode timing.`;
   } else if (rootSlug === "mimic") {
-    helpText = "Each run simulates one Mimic kill with the selected attempt count controlling the quantity reduction.";
+    helpText = `${helpText} Open encounter settings to adjust the Mimic clear attempt.`;
   } else if (rollRange) {
-    helpText = `This activity rolls ${rollRange.min}-${rollRange.max} reward slots per completion, then layers in any tertiary rewards or Mimic bonus logic.`;
+    helpText = `${helpText} This activity rolls ${rollRange.min}-${rollRange.max} reward slots per completion.`;
   }
 
   elements.simulationHelp.textContent = disabled ? activity.note || "Simulation is not available for this activity." : helpText;
@@ -555,9 +612,9 @@ function collectSimulationPayloadAndOptions() {
   }
 
   const options = {
-    kills: clampRuns(elements.killsInput.value || 1),
-    target_item_slug: elements.targetItem.value || null,
-    target_count: Number(elements.targetCount.value || 1),
+    kills: state.simulationMode === "target" ? 1 : clampRuns(elements.killsInput.value || 1),
+    target_item_slug: state.simulationMode === "target" ? elements.targetItem.value || null : null,
+    target_count: state.simulationMode === "target" ? Math.max(1, Math.floor(Number(elements.targetCount.value || 1))) : 1,
     max_chase_kills: MAX_SIM_CAP,
   };
 
@@ -605,14 +662,15 @@ function renderRunSummary() {
   const cards = [
     buildSummaryCard("Activity", state.selectedActivity.name),
     state.selectedVariantId ? buildSummaryCard("Variant", activityView.label || state.selectedVariantId) : "",
-    buildSummaryCard("Runs", formatNumber(options.kills)),
-    buildSummaryCard("Mode", options.target_item_slug ? "Target chase" : "Fixed-run"),
-    buildSummaryCard("Target", options.target_item_slug ? (elements.targetItem.selectedOptions[0]?.textContent || options.target_item_slug) : "None"),
-    buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)),
+    buildSummaryCard("Mode", state.simulationMode === "target" ? "Target chase" : "Attempts"),
   ];
 
-  if (options.target_item_slug) {
+  if (state.simulationMode === "target") {
+    cards.push(buildSummaryCard("Target", elements.targetItem.selectedOptions[0]?.textContent || "Choose an item"));
     cards.push(buildSummaryCard("Target count", formatNumber(options.target_count)));
+    cards.push(buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)));
+  } else {
+    cards.push(buildSummaryCard("Attempts", formatNumber(options.kills)));
   }
 
   if (rootSlug === "mimic" || rootSlug === "clue-scrolls-elite" || rootSlug === "clue-scrolls-master") {
@@ -928,6 +986,7 @@ async function selectActivity(slug) {
   try {
     const activity = await getJson(`./data/activities/${slug}.json`);
     state.selectedActivity = activity;
+    elements.encounterSettings.open = false;
     renderVariantSelector(activity);
     refreshSelectedActivityView(false);
     renderPlaceholderResults();
@@ -976,11 +1035,24 @@ elements.variantSelect.addEventListener("change", () => {
   setSimulatorStep("configure");
 });
 
+elements.modeFixedButton.addEventListener("click", () => {
+  setSimulationMode("fixed");
+});
+
+elements.modeTargetButton.addEventListener("click", () => {
+  setSimulationMode("target");
+});
+
 elements.nextStepButton.addEventListener("click", () => {
   if (!state.selectedActivity) {
     return;
   }
   elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
+  elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
+  if (state.simulationMode === "target" && !elements.targetItem.value) {
+    elements.simulationHelp.textContent = "Choose a target item before moving to review.";
+    return;
+  }
   renderRunSummary();
   setSimulatorStep("review");
 });
@@ -999,6 +1071,15 @@ elements.backStepButton.addEventListener("click", () => {
       if (String(cleaned) !== elements.killsInput.value && eventName === "change") {
         elements.killsInput.value = String(cleaned);
       }
+    }
+    if (event.target === elements.targetCount) {
+      const cleaned = Math.max(1, Math.floor(Number(elements.targetCount.value || 1)));
+      if (String(cleaned) !== elements.targetCount.value && eventName === "change") {
+        elements.targetCount.value = String(cleaned);
+      }
+    }
+    if (state.selectedActivity) {
+      renderSimulationState(getActiveActivityView(state.selectedActivity));
     }
     if (state.simulatorStep === "review") {
       renderRunSummary();
@@ -1024,6 +1105,11 @@ elements.simulationForm.addEventListener("submit", async (event) => {
   if (!data) {
     return;
   }
+  if (state.simulationMode === "target" && !data.options.target_item_slug) {
+    renderPlaceholderResults("Choose a target item before running a target chase.");
+    setSimulatorStep("configure");
+    return;
+  }
   const { payload, options } = data;
 
   setSimulationLoading("Rolling loot...");
@@ -1036,6 +1122,8 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     renderPlaceholderResults(error.message || "Simulation failed.");
   }
 });
+
+setSimulationMode(state.simulationMode);
 
 loadApp().catch((error) => {
   console.error(error);
