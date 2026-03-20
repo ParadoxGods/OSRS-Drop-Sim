@@ -33,13 +33,14 @@
                   <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
                 </div>
               </section>
+            </div>
 
-              <section class="surface-card config-card">
-                <div class="section-heading">
-                  <p class="eyebrow">Configuration</p>
-                  <span class="subtle">Only the settings for the selected mode are shown.</span>
+            <div class="workspace-column results-column">
+              <section class="surface-card run-summary-card">
+                <div class="review-card-header">
+                  <h3>Current setup</h3>
+                  <span class="subtle">Edit the run inputs here.</span>
                 </div>
-
                 <div id="activityMeta" class="meta-row"></div>
                 <div class="source-row">
                   <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
@@ -177,15 +178,6 @@
                 </details>
 
                 <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
-              </section>
-            </div>
-
-            <div class="workspace-column results-column">
-              <section class="surface-card run-summary-card">
-                <div class="review-card-header">
-                  <h3>Current setup</h3>
-                  <span class="subtle">Updates live while you edit.</span>
-                </div>
                 <div id="runSummary" class="summary-grid"></div>
                 <div class="sim-nav single-action">
                   <button id="simulateButton" class="primary-button run-button" type="submit">

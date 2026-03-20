@@ -109,7 +109,6 @@ select {
 .notable-list,
 .summary-grid,
 .activity-controls,
-.config-card,
 .results-column {
   display: grid;
   gap: var(--gap);
@@ -153,7 +152,7 @@ select {
 }
 
 .sim-form {
-  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1fr);
   align-items: stretch;
   height: 100%;
 }
@@ -183,6 +182,10 @@ select {
 .activity-card {
   align-content: start;
   gap: 10px;
+}
+
+.control-column {
+  align-content: start;
 }
 
 .activity-strip {
@@ -292,12 +295,6 @@ select {
   color: var(--text);
 }
 
-.config-card {
-  gap: 10px;
-  overflow: auto;
-  align-content: start;
-}
-
 .mode-switch {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -327,7 +324,7 @@ select {
   box-shadow: inset 0 0 0 1px var(--panel-border-strong);
 }
 
-.config-card .meta-row {
+.run-summary-card .meta-row {
   gap: 6px;
 }
 
@@ -447,6 +444,11 @@ label,
 .results-stage-card {
   display: grid;
   gap: 10px;
+}
+
+.run-summary-card {
+  align-content: start;
+  overflow: auto;
 }
 
 .summary-grid {
@@ -993,7 +995,7 @@ body.modal-open {
 
 @media (max-width: 1120px) {
   .sim-form {
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   }
 
   .activity-grid {
