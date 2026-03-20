@@ -96,6 +96,7 @@ const state = {
   activeResultsTab: "overview",
   simulationMode: null,
   paneView: "setup",
+  lastResult: null,
 };
 
 const elements = {
@@ -396,6 +397,12 @@ function getRenderableRows(activity) {
     if (!row.item_slug) {
       return false;
     }
+    if (row.section === "Contract") {
+      return false;
+    }
+    if (activity.slug === "yama" && row.section === "Junk") {
+      return false;
+    }
     if (EXCLUDED_REFERENCE_SLUGS.has(row.item_slug)) {
       return false;
     }
@@ -654,30 +661,158 @@ function buildResultsContext(result = null) {
   `;
 }
 
+function escapeSvgText(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildScreenshotCardSvg() {
+  const result = state.lastResult;
+  if (!result) {
+    return null;
+  }
+
+  const width = 1200;
+  const height = 760;
+  const lineHeight = 34;
+  const cardWidth = 268;
+  const title = "OSRS Drop Simulator";
+  const subtitle = result.mode === "gp"
+    ? `GP target comparison · ${formatShortValue(result.target_gp_value || 0)} gp`
+    : `${state.selectedActivity?.name || "Selected activity"} · ${result.mode === "target" ? "Target chase" : "Attempts"}`;
+
+  const metricCards = result.mode === "gp"
+    ? [
+        ["Target value", `${formatShortValue(result.target_gp_value || 0)} gp`],
+        ["Bosses ranked", formatNumber(result.boss_count || 0)],
+        ["Samples / boss", formatNumber(result.sample_count || 0)],
+        ["Fastest median", result.rankings?.[0] ? `${formatNumber(result.rankings[0].median_kills)} kc` : "N/A"],
+      ]
+    : [
+        ["Runs", formatNumber(result.kills_completed || 0)],
+        ["Total value", `${formatShortValue(result.total_ge_value || 0)} gp`],
+        ["Value / run", `${formatShortValue(result.kills_completed ? Math.round((result.total_ge_value || 0) / result.kills_completed) : 0)} gp`],
+        ["Distinct items", formatNumber(result.distinct_items || 0)],
+      ];
+
+  const metricSvg = metricCards.map(([label, value], index) => {
+    const x = 44 + (index * (cardWidth + 16));
+    return `
+      <g transform="translate(${x} 124)">
+        <rect width="${cardWidth}" height="96" fill="#111923" stroke="rgba(255,255,255,0.10)" />
+        <text x="18" y="32" fill="#d8bc72" font-size="14" font-weight="600">${escapeSvgText(label)}</text>
+        <text x="18" y="66" fill="#edf2f7" font-size="26" font-weight="700">${escapeSvgText(value)}</text>
+      </g>
+    `;
+  }).join("");
+
+  const rows = result.mode === "gp"
+    ? (result.rankings || []).slice(0, 10).map((entry, index) => ({
+        left: `${index + 1}. ${entry.name}`,
+        right: entry.capped ? `${formatNumber(25000000)}+ kc` : `${formatNumber(entry.median_kills)} kc`,
+        sub: `${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill`,
+      }))
+    : (result.top_items || []).slice(0, 10).map((item) => ({
+        left: item.item_name,
+        right: `${formatNumber(item.quantity)}x`,
+        sub: `${formatShortValue(item.total_ge_value || 0)} gp`,
+      }));
+
+  const rowsSvg = rows.map((row, index) => {
+    const y = 312 + (index * lineHeight);
+    return `
+      <g transform="translate(44 ${y})">
+        <line x1="0" y1="22" x2="1112" y2="22" stroke="rgba(255,255,255,0.08)" />
+        <text x="0" y="18" fill="#edf2f7" font-size="18" font-weight="600">${escapeSvgText(row.left)}</text>
+        <text x="1112" y="18" text-anchor="end" fill="#edf2f7" font-size="18" font-weight="700">${escapeSvgText(row.right)}</text>
+        <text x="0" y="38" fill="#9eacbb" font-size="14">${escapeSvgText(row.sub)}</text>
+      </g>
+    `;
+  }).join("");
+
+  const footer = result.mode === "gp"
+    ? "Ranked by median simulated KC across eligible standard bosses."
+    : (result.mode === "target"
+      ? `Target ${result.target_reached ? "reached" : "not reached before the cap"}.`
+      : "End-state loot summary.");
+
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <rect width="${width}" height="${height}" fill="#0d1217" />
+      <rect x="20" y="20" width="${width - 40}" height="${height - 40}" fill="#131a21" stroke="rgba(255,255,255,0.10)" />
+      <text x="44" y="68" fill="#f0ddb0" font-size="30" font-weight="700">${escapeSvgText(title)}</text>
+      <text x="44" y="98" fill="#9eacbb" font-size="18">${escapeSvgText(subtitle)}</text>
+      ${metricSvg}
+      <text x="44" y="276" fill="#d8bc72" font-size="16" font-weight="600">${escapeSvgText(result.mode === "gp" ? "KC ranking" : "Top loot")}</text>
+      ${rowsSvg}
+      <text x="44" y="${height - 54}" fill="#9eacbb" font-size="14">${escapeSvgText(footer)}</text>
+    </svg>
+  `;
+
+  return {
+    svg,
+    width,
+    height,
+    filename: result.mode === "gp" ? "osrs-gp-comparison" : (state.selectedActivity?.slug || "osrs-drop-sim"),
+  };
+}
+
+async function renderSvgToPngDataUrl(svgMarkup, width, height) {
+  const blob = new Blob([svgMarkup], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = new Image();
+    const loaded = new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+    });
+    image.src = url;
+    await loaded;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Screenshot rendering is unavailable in this browser.");
+    }
+    context.fillStyle = "#0d1217";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 async function downloadResultsScreenshot() {
-  if (!elements.resultsCapture) {
+  const screenshotCard = buildScreenshotCardSvg();
+  if (!screenshotCard) {
     return;
   }
 
-  if (typeof window.html2canvas !== "function") {
-    window.print();
-    return;
-  }
-
-  const canvas = await window.html2canvas(elements.resultsCapture, {
-    backgroundColor: "#0d1217",
-    scale: Math.max(2, Math.min(3, window.devicePixelRatio || 1)),
-    useCORS: true,
-  });
+  const previewWindow = window.open("", "_blank");
+  const dataUrl = await renderSvgToPngDataUrl(screenshotCard.svg, screenshotCard.width, screenshotCard.height);
   const link = document.createElement("a");
-  const baseName = state.simulationMode === "gp" ? "osrs-gp-comparison" : (state.selectedActivity?.slug || "osrs-drop-sim");
-  link.download = `${baseName}.png`;
-  link.href = canvas.toDataURL("image/png");
+  link.download = `${screenshotCard.filename}.png`;
+  link.href = dataUrl;
   link.click();
+
+  if (previewWindow) {
+    previewWindow.document.title = `${screenshotCard.filename}.png`;
+    previewWindow.document.body.style.margin = "0";
+    previewWindow.document.body.style.background = "#0d1217";
+    previewWindow.document.body.innerHTML = `<img src="${dataUrl}" alt="Simulation screenshot" style="display:block;max-width:100%;height:auto;margin:0 auto;">`;
+  }
 }
 
 function setSimulationLoading(message, detail = "Rolling rewards and assembling the final loot review.") {
   showResultsStage(false);
+  state.lastResult = null;
   elements.resultsContext.innerHTML = buildResultsContext();
   setRunButtonState(true);
   elements.simulationResults.classList.add("is-loading");
@@ -1049,6 +1184,7 @@ function renderRunSummary() {
 }
 
 function renderPlaceholderResults(message = "Run a simulation to see the loot review.") {
+  state.lastResult = null;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = "";
   elements.simulationResults.innerHTML = `<div class="results-empty">${escapeHtml(message)}</div>`;
@@ -1163,6 +1299,7 @@ function buildGpRankRow(entry, index, maxKillsForScale) {
 
 function renderGpComparisonResults(result) {
   showResultsStage(true);
+  state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
   const rankings = result.rankings || [];
@@ -1202,6 +1339,7 @@ function renderGpComparisonResults(result) {
 
 function renderSimulationResults(result) {
   showResultsStage(true);
+  state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
   state.activeResultsTab = "overview";

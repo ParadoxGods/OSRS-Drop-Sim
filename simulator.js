@@ -369,6 +369,10 @@ function getRowBySlug(activityData, slug) {
   return (activityData.drop_rows || []).find((row) => row.item_slug === slug) || null;
 }
 
+function getRowByPredicate(activityData, predicate) {
+  return (activityData.drop_rows || []).find((row) => predicate(row)) || null;
+}
+
 function createSyntheticRow(item_slug, item_name, section) {
   return {
     item_slug,
@@ -545,6 +549,119 @@ function simulateMimicActivity(activityData, options, rng) {
       mimic_tier: tier,
       mimic_attempts: attemptCount,
     },
+  });
+}
+
+function simulateYamaActivity(activityData, options, rng) {
+  const simulation = activityData.simulation || {};
+  const collected = new Map();
+  const notableDrops = [];
+  let totalGeValue = 0;
+  let killsCompleted = 0;
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
+
+  const uniqueRows = [
+    { ...getRowBySlug(activityData, "oathplate-helm"), probability: 1 / 5 },
+    { ...getRowBySlug(activityData, "oathplate-chest"), probability: 1 / 5 },
+    { ...getRowBySlug(activityData, "oathplate-legs"), probability: 1 / 5 },
+    { ...getRowBySlug(activityData, "soulflame-horn"), probability: 2 / 5 },
+  ].filter((row) => row.item_slug);
+
+  const dossierRow = getRowBySlug(activityData, "dossier");
+  const lockboxRow = getRowBySlug(activityData, "forgotten-lockbox");
+  const shardsRow = getRowBySlug(activityData, "oathplate-shards");
+  const clueRow = getRowBySlug(activityData, "clue-scroll-elite");
+  const petRow = getRowBySlug(activityData, "yami");
+
+  const foodRows = [
+    getRowBySlug(activityData, "pineapple-pizza"),
+    getRowBySlug(activityData, "wild-pie"),
+  ].filter(Boolean);
+  const restoreRows = [
+    getRowBySlug(activityData, "prayer-potion-3"),
+    getRowBySlug(activityData, "super-restore-mix-2"),
+  ].filter(Boolean);
+  const combatRows = [
+    getRowBySlug(activityData, "super-combat-potion-1"),
+    getRowBySlug(activityData, "zamorak-mix-2"),
+  ].filter(Boolean);
+
+  const standardRows = [
+    { row: getRowBySlug(activityData, "rune-chainbody"), weight: 5 },
+    { row: getRowBySlug(activityData, "battlestaff"), weight: 4 },
+    { row: getRowBySlug(activityData, "rune-platebody"), weight: 3 },
+    { row: getRowBySlug(activityData, "dragon-plateskirt"), weight: 2 },
+    { row: getRowBySlug(activityData, "dragon-platelegs"), weight: 2 },
+    { row: getRowBySlug(activityData, "blood-rune"), weight: 3 },
+    { row: getRowBySlug(activityData, "law-rune"), weight: 3 },
+    { row: getRowBySlug(activityData, "smoke-rune"), weight: 2 },
+    { row: getRowByPredicate(activityData, (row) => row.item_slug === "soul-rune" && String(row.quantity_text || "").includes("500")), weight: 2 },
+    { row: getRowByPredicate(activityData, (row) => row.item_slug === "soul-rune" && String(row.quantity_text || "").includes("1,000")), weight: 2 },
+    { row: getRowBySlug(activityData, "fire-rune"), weight: 1 },
+    { row: getRowBySlug(activityData, "wrath-rune"), weight: 1 },
+    { row: getRowBySlug(activityData, "aether-catalyst"), weight: 7 },
+    { row: getRowBySlug(activityData, "diabolic-worms"), weight: 7 },
+    { row: getRowBySlug(activityData, "barrel-of-demonic-tallow-full"), weight: 5 },
+    { row: getRowBySlug(activityData, "chasm-teleport-scroll"), weight: 4 },
+    { row: getRowBySlug(activityData, "emerald"), weight: 3 },
+    { row: getRowBySlug(activityData, "ruby"), weight: 3 },
+    { row: getRowBySlug(activityData, "diamond"), weight: 3 },
+    { row: getRowBySlug(activityData, "onyx-bolt-tips"), weight: 1 },
+  ].filter((entry) => entry.row && entry.weight > 0);
+
+  while (killsCompleted < limit) {
+    killsCompleted += 1;
+
+    if (rng() <= (1 / 120)) {
+      const picked = pickExclusiveItem(uniqueRows, rng);
+      if (picked) {
+        totalGeValue += addRowLoot(collected, notableDrops, picked, sampleQuantity(picked.quantity_text || "1", rng), killsCompleted, {
+          sectionOverride: "Unique",
+        });
+      }
+    } else if (dossierRow && rng() <= (1 / 12)) {
+      totalGeValue += addRowLoot(collected, notableDrops, dossierRow, 1, killsCompleted, { sectionOverride: "Unique" });
+    } else if (lockboxRow && rng() <= (1 / 30)) {
+      totalGeValue += addRowLoot(collected, notableDrops, lockboxRow, 1, killsCompleted, { sectionOverride: "Unique" });
+    } else if (shardsRow && rng() <= (1 / 15)) {
+      totalGeValue += addRowLoot(collected, notableDrops, shardsRow, sampleQuantity(shardsRow.quantity_text || "12", rng), killsCompleted, {
+        sectionOverride: "Unique",
+      });
+    } else if (rng() <= (15 / 78)) {
+      const foodRow = pickWeightedValue(foodRows.map((row) => ({ weight: 1, value: row })), rng);
+      const restoreRow = pickWeightedValue(restoreRows.map((row) => ({ weight: 1, value: row })), rng);
+      const combatRow = pickWeightedValue(combatRows.map((row) => ({ weight: 1, value: row })), rng);
+
+      for (const row of [foodRow, restoreRow, combatRow]) {
+        if (!row) {
+          continue;
+        }
+        totalGeValue += addRowLoot(collected, notableDrops, row, sampleQuantity(row.quantity_text || "1", rng), killsCompleted, {
+          sectionOverride: "Supplies",
+        });
+      }
+    } else {
+      const picked = pickWeightedValue(standardRows.map((entry) => ({ weight: entry.weight, value: entry.row })), rng);
+      if (picked) {
+        totalGeValue += addRowLoot(collected, notableDrops, picked, sampleQuantity(picked.quantity_text || "1", rng), killsCompleted);
+      }
+    }
+
+    if (petRow && rng() <= (1 / 2500)) {
+      totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+    if (clueRow && rng() <= (1 / 30)) {
+      totalGeValue += addRowLoot(collected, notableDrops, clueRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
+    }
+  }
+
+  return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
+    note: "Yama uses the base solo reward model from the OSRS Wiki. Contract fights, duo contribution scaling, and the elite CA clue buff are not currently simulated.",
   });
 }
 
@@ -976,6 +1093,9 @@ export function simulateActivity(activityData, options = {}) {
   const rng = createRng(seed);
   if (activityData.slug === "mimic") {
     return simulateMimicActivity(activityData, options, rng);
+  }
+  if (activityData.slug === "yama") {
+    return simulateYamaActivity(activityData, options, rng);
   }
   if (isRaidSlug(activityData.slug)) {
     if (activityData.slug === "chambers-of-xeric" || activityData.slug === "chambers-of-xeric-challenge-mode") {
