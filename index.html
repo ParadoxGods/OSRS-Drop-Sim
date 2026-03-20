@@ -30,16 +30,11 @@
               <p id="activityNote" class="note" hidden></p>
             </div>
           </div>
-
-          <div class="stepper" aria-label="Simulation steps">
-            <div class="step-pill is-active" data-step-label="configure">1. Configure</div>
-            <div class="step-pill" data-step-label="review">2. Review and run</div>
-          </div>
         </div>
 
         <div class="workspace">
           <form id="simulationForm" class="sim-form">
-            <div id="configurationStep" class="sim-step">
+            <div class="sim-step">
               <div class="config-lead">
                 <strong>Set the run up.</strong>
                 <span>Choose an activity, then either a fixed attempt count or a target item chase.</span>
@@ -177,13 +172,18 @@
               </details>
             </div>
 
-            <div id="reviewStep" class="sim-step" hidden>
+            <div class="review-stack">
               <div class="review-card run-summary-card">
                 <div class="review-card-header">
-                  <h3>Run summary</h3>
-                  <span class="subtle">Final check before the simulator rolls.</span>
+                  <h3>Current setup</h3>
+                  <span class="subtle">Updates live as you change the configuration.</span>
                 </div>
                 <div id="runSummary" class="summary-grid"></div>
+                <div class="sim-nav single-action">
+                  <button id="simulateButton" class="primary-button run-button" type="submit">
+                    <span id="simulateButtonLabel">Run simulation</span>
+                  </button>
+                </div>
               </div>
 
               <div class="review-card results-stage-card">
@@ -193,12 +193,6 @@
                 </div>
                 <div id="simulationResults" class="results-empty">Run simulation to see the loot review.</div>
               </div>
-            </div>
-
-            <div class="sim-nav">
-              <button id="backStepButton" class="secondary-button" type="button" hidden>Back</button>
-              <button id="nextStepButton" class="primary-button" type="button">Next</button>
-              <button id="simulateButton" class="primary-button" type="submit" hidden>Run simulation</button>
             </div>
 
             <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>

@@ -77,7 +77,6 @@ const state = {
   selectedActivity: null,
   selectedVariantId: null,
   activeResultsTab: "overview",
-  simulatorStep: "configure",
   simulationMode: "fixed",
 };
 
@@ -94,12 +93,9 @@ const elements = {
   sourceLink: document.getElementById("sourceLink"),
   activityImage: document.getElementById("activityImage"),
   simulationForm: document.getElementById("simulationForm"),
-  configurationStep: document.getElementById("configurationStep"),
-  reviewStep: document.getElementById("reviewStep"),
   runSummary: document.getElementById("runSummary"),
-  nextStepButton: document.getElementById("nextStepButton"),
-  backStepButton: document.getElementById("backStepButton"),
   simulateButton: document.getElementById("simulateButton"),
+  simulateButtonLabel: document.getElementById("simulateButtonLabel"),
   simulationHelp: document.getElementById("simulationHelp"),
   simulationResults: document.getElementById("simulationResults"),
   modeFixedButton: document.getElementById("modeFixedButton"),
@@ -438,6 +434,7 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
 }
 
 function setSimulationLoading(message) {
+  setRunButtonState(true);
   elements.simulationResults.classList.add("is-loading");
   elements.simulationResults.innerHTML = `
     <div class="simulation-loading">
@@ -484,9 +481,7 @@ function setSimulationMode(mode) {
 
   if (state.selectedActivity) {
     renderSimulationState(getActiveActivityView(state.selectedActivity));
-    if (state.simulatorStep === "review") {
-      renderRunSummary();
-    }
+    renderRunSummary();
   }
 }
 
@@ -500,7 +495,6 @@ function renderSimulationState(activity) {
   const hasEncounterSettings = Boolean(clueTier || raidType);
 
   elements.simulateButton.disabled = disabled;
-  elements.nextStepButton.disabled = disabled;
   elements.killsField.hidden = isTargetMode;
   elements.targetItemField.hidden = !isTargetMode;
   elements.targetCountField.hidden = !isTargetMode;
@@ -570,20 +564,6 @@ function renderSimulationState(activity) {
   elements.simulationHelp.textContent = disabled ? activity.note || "Simulation is not available for this activity." : helpText;
 }
 
-function setSimulatorStep(step) {
-  state.simulatorStep = step;
-  const configureStep = step === "configure";
-  elements.configurationStep.hidden = !configureStep;
-  elements.reviewStep.hidden = configureStep;
-  elements.backStepButton.hidden = configureStep;
-  elements.nextStepButton.hidden = !configureStep;
-  elements.simulateButton.hidden = configureStep;
-
-  document.querySelectorAll("[data-step-label]").forEach((label) => {
-    label.classList.toggle("is-active", label.dataset.stepLabel === step);
-  });
-}
-
 function buildSummaryCard(label, value) {
   return `
     <article class="summary-card">
@@ -591,6 +571,21 @@ function buildSummaryCard(label, value) {
       <strong>${escapeHtml(value)}</strong>
     </article>
   `;
+}
+
+function setRunButtonState(running) {
+  elements.simulateButton.classList.toggle("is-running", running);
+  elements.simulateButton.setAttribute("aria-busy", String(running));
+  elements.simulateButtonLabel.textContent = running ? "Rolling loot..." : "Run simulation";
+  if (running) {
+    elements.simulateButton.disabled = true;
+    return;
+  }
+  if (!state.selectedActivity) {
+    elements.simulateButton.disabled = true;
+    return;
+  }
+  renderSimulationState(getActiveActivityView(state.selectedActivity));
 }
 
 function collectSimulationPayloadAndOptions() {
@@ -980,7 +975,6 @@ async function selectActivity(slug) {
   if (window.scrollY > 120) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  setSimulatorStep("configure");
   renderPlaceholderResults("Run simulation to see the loot review.");
 
   try {
@@ -1032,7 +1026,6 @@ document.addEventListener("keydown", (event) => {
 elements.variantSelect.addEventListener("change", () => {
   state.selectedVariantId = elements.variantSelect.value || null;
   refreshSelectedActivityView(true);
-  setSimulatorStep("configure");
 });
 
 elements.modeFixedButton.addEventListener("click", () => {
@@ -1043,27 +1036,9 @@ elements.modeTargetButton.addEventListener("click", () => {
   setSimulationMode("target");
 });
 
-elements.nextStepButton.addEventListener("click", () => {
-  if (!state.selectedActivity) {
-    return;
-  }
-  elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
-  elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
-  if (state.simulationMode === "target" && !elements.targetItem.value) {
-    elements.simulationHelp.textContent = "Choose a target item before moving to review.";
-    return;
-  }
-  renderRunSummary();
-  setSimulatorStep("review");
-});
-
-elements.backStepButton.addEventListener("click", () => {
-  setSimulatorStep("configure");
-});
-
 ["input", "change"].forEach((eventName) => {
   elements.simulationForm.addEventListener(eventName, (event) => {
-    if (event.target === elements.nextStepButton || event.target === elements.backStepButton || event.target === elements.simulateButton) {
+    if (event.target === elements.simulateButton) {
       return;
     }
     if (event.target === elements.killsInput) {
@@ -1081,9 +1056,7 @@ elements.backStepButton.addEventListener("click", () => {
     if (state.selectedActivity) {
       renderSimulationState(getActiveActivityView(state.selectedActivity));
     }
-    if (state.simulatorStep === "review") {
-      renderRunSummary();
-    }
+    renderRunSummary();
   });
 });
 
@@ -1097,7 +1070,7 @@ elements.simulationResults.addEventListener("click", (event) => {
 
 elements.simulationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!state.selectedActivity || state.simulatorStep !== "review") {
+  if (!state.selectedActivity) {
     return;
   }
 
@@ -1106,8 +1079,8 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     return;
   }
   if (state.simulationMode === "target" && !data.options.target_item_slug) {
-    renderPlaceholderResults("Choose a target item before running a target chase.");
-    setSimulatorStep("configure");
+    elements.simulationHelp.textContent = "Choose a target item before running a target chase.";
+    elements.targetItem.focus();
     return;
   }
   const { payload, options } = data;
@@ -1120,10 +1093,13 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     renderSimulationResults(result);
   } catch (error) {
     renderPlaceholderResults(error.message || "Simulation failed.");
+  } finally {
+    setRunButtonState(false);
   }
 });
 
 setSimulationMode(state.simulationMode);
+setRunButtonState(false);
 
 loadApp().catch((error) => {
   console.error(error);

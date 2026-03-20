@@ -97,6 +97,7 @@ select {
 .simulator-head,
 .sim-form,
 .sim-step,
+.review-stack,
 .activity-copy,
 .results-shell,
 .overview-grid,
@@ -232,28 +233,6 @@ select {
   border-bottom-color: rgba(240, 221, 176, 0.72);
 }
 
-.stepper {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.step-pill {
-  padding: 5px 8px;
-  border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.72);
-  color: var(--muted);
-  font-family: var(--font-display);
-  font-size: 0.68rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.step-pill.is-active {
-  border-color: var(--border-strong);
-  color: var(--accent-strong);
-}
-
 .review-card-header {
   display: flex;
   align-items: end;
@@ -276,19 +255,6 @@ select {
 .config-lead strong {
   font-family: var(--font-display);
   font-size: 0.92rem;
-}
-
-.inline-key {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.8);
-  color: var(--accent-strong);
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
 .form-grid {
@@ -436,6 +402,15 @@ select {
   align-items: center;
 }
 
+.single-action {
+  justify-content: flex-end;
+}
+
+.single-action .run-button {
+  width: 100%;
+  max-width: 260px;
+}
+
 .encounter-settings {
   border: 1px solid var(--border);
   background: rgba(9, 14, 18, 0.78);
@@ -461,6 +436,52 @@ select {
 
 .sim-nav .primary-button:last-child {
   margin-left: auto;
+}
+
+.run-button {
+  position: relative;
+  overflow: hidden;
+  min-width: 210px;
+  min-height: 40px;
+  padding: 9px 16px;
+  box-shadow: 0 0 0 0 rgba(216, 188, 114, 0.24);
+  animation: run-button-breathe 2.2s ease-in-out infinite;
+}
+
+.run-button::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -48px;
+  width: 32px;
+  background: rgba(255, 248, 225, 0.18);
+  transform: skewX(-18deg);
+  animation: run-button-sweep 2.8s ease-in-out infinite;
+}
+
+.run-button:hover {
+  filter: brightness(1.02);
+}
+
+.run-button:disabled {
+  animation: none;
+}
+
+.run-button:disabled::after {
+  animation: none;
+}
+
+.run-button.is-running {
+  animation: none;
+}
+
+.run-button.is-running::after {
+  left: 50%;
+  width: 40px;
+  background: rgba(255, 248, 225, 0.22);
+  transform: translateX(-50%);
+  animation: run-button-blink 900ms ease-in-out infinite;
 }
 
 .results-empty {
@@ -496,6 +517,12 @@ select {
 
 #simulationResults {
   min-height: 180px;
+}
+
+#simulationResults .results-shell,
+#simulationResults .results-empty,
+#simulationResults .simulation-loading {
+  animation: results-in 220ms ease;
 }
 
 .metric-grid {
@@ -850,6 +877,10 @@ body.modal-open {
   .activity-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
+
+  .single-action .run-button {
+    max-width: none;
+  }
 }
 
 @media (max-width: 480px) {
@@ -884,6 +915,55 @@ body.modal-open {
   50% {
     transform: scaleY(1.35);
     opacity: 1;
+  }
+}
+
+@keyframes run-button-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(216, 188, 114, 0.12);
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(216, 188, 114, 0.14);
+  }
+}
+
+@keyframes run-button-sweep {
+  0% {
+    left: -48px;
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  54% {
+    left: calc(100% + 28px);
+    opacity: 0.6;
+  }
+  100% {
+    left: calc(100% + 28px);
+    opacity: 0;
+  }
+}
+
+@keyframes run-button-blink {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes results-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
