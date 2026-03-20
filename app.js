@@ -34,6 +34,7 @@ const TOB_COMMON_ROWS = [
 
 const MAX_SIM_CAP = 25000000;
 const GP_COMPARISON_SAMPLE_COUNT = 3;
+const TARGET_COMPARISON_SAMPLE_COUNT = 3;
 const GP_COMPARISON_SAMPLE_COUNT_HIGH_VALUE = 2;
 const GP_COMPARISON_SAMPLE_COUNT_ULTRA_VALUE = 1;
 const GP_COMPARISON_HIGH_VALUE_THRESHOLD = 250000000;
@@ -50,6 +51,7 @@ const GP_MODE_EXCLUDED_SLUGS = new Set([
   "tzkal-zuk",
 ]);
 const activityCache = new Map();
+let targetItemCatalogPromise = null;
 
 const EXCLUDED_REFERENCE_SLUGS = new Set([
   "dark-journal",
@@ -90,24 +92,31 @@ const state = {
   status: null,
   activities: [],
   filteredActivities: [],
+  targetItems: [],
+  filteredTargetItems: [],
   selectedSlug: null,
   selectedActivity: null,
+  selectedTargetItemSlug: null,
+  selectedTargetItem: null,
   selectedVariantId: null,
   activeResultsTab: "overview",
   activeGpRankingSlug: null,
   simulationMode: null,
   paneView: "setup",
   lastResult: null,
+  pickerMode: "activity",
 };
 
 const elements = {
   activityPickerTrigger: document.getElementById("activityPickerTrigger"),
   activityModal: document.getElementById("activityModal"),
+  activityModalTitle: document.getElementById("activityModalTitle"),
   closeActivityPicker: document.getElementById("closeActivityPicker"),
   activityGrid: document.getElementById("activityGrid"),
   modalSearch: document.getElementById("modalSearch"),
   modalSupportedOnly: document.getElementById("modalSupportedOnly"),
   modalCountLabel: document.getElementById("modalCountLabel"),
+  modalHintLabel: document.getElementById("modalHintLabel"),
   activitySelectionBlock: document.getElementById("activitySelectionBlock"),
   activityDetailsBlock: document.getElementById("activityDetailsBlock"),
   activityMeta: document.getElementById("activityMeta"),
@@ -270,7 +279,13 @@ function clampRuns(value) {
 }
 
 function clampGpTarget(value) {
-  const numeric = Math.floor(Number(value) || 0);
+  if (value === null || value === undefined || String(value).trim() === "") {
+    return null;
+  }
+  const numeric = Math.floor(Number(value));
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
   return Math.max(1, numeric);
 }
 
@@ -368,14 +383,98 @@ function getGpEligibleActivities() {
 }
 
 function requiresActivitySelection(mode = state.simulationMode) {
-  return mode === "fixed" || mode === "target";
+  return mode === "fixed";
+}
+
+function requiresItemSelection(mode = state.simulationMode) {
+  return mode === "target";
 }
 
 function renderSetupProgress() {
   const hasMode = Boolean(state.simulationMode);
   const needsActivity = requiresActivitySelection();
-  elements.activitySelectionBlock.hidden = !hasMode || !needsActivity;
-  elements.activityDetailsBlock.hidden = !hasMode || (needsActivity && !state.selectedActivity);
+  const needsItem = requiresItemSelection();
+  const hasSelection = needsActivity
+    ? Boolean(state.selectedActivity)
+    : (needsItem ? Boolean(state.selectedTargetItem) : true);
+  elements.activitySelectionBlock.hidden = !hasMode || (!needsActivity && !needsItem);
+  elements.activityDetailsBlock.hidden = !hasMode || !hasSelection;
+  if (state.simulationMode === "gp") {
+    elements.activityDetailsBlock.hidden = !hasMode;
+  }
+}
+
+function matchesTargetItemFilter(entry, query) {
+  if (!query) {
+    return true;
+  }
+  const haystack = [
+    entry.item_name,
+    entry.item_slug,
+    ...entry.activities.map((activity) => activity.name),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(query);
+}
+
+async function ensureTargetItemCatalogLoaded() {
+  if (state.targetItems.length) {
+    return state.targetItems;
+  }
+  if (targetItemCatalogPromise) {
+    return targetItemCatalogPromise;
+  }
+
+  targetItemCatalogPromise = (async () => {
+    const itemMap = new Map();
+    const eligibleActivities = getGpEligibleActivities().sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const summary of eligibleActivities) {
+      const activity = await loadActivityData(summary.slug);
+      getTargetableRows(activity).forEach((row) => {
+        const existing = itemMap.get(row.item_slug) || {
+          item_slug: row.item_slug,
+          item_name: row.item_name,
+          item_asset_path: row.item_asset_path || null,
+          activities: [],
+        };
+        if (!existing.activities.some((entry) => entry.slug === summary.slug)) {
+          existing.activities.push({
+            slug: summary.slug,
+            name: summary.name,
+            activity_image_path: summary.activity_image_path || activity.activity_image_path || null,
+          });
+        }
+        if (!existing.item_asset_path && row.item_asset_path) {
+          existing.item_asset_path = row.item_asset_path;
+        }
+        itemMap.set(row.item_slug, existing);
+      });
+    }
+
+    state.targetItems = Array.from(itemMap.values())
+      .map((entry) => ({
+        ...entry,
+        activity_count: entry.activities.length,
+        activities: entry.activities.sort((a, b) => a.name.localeCompare(b.name)),
+      }))
+      .sort((a, b) => a.item_name.localeCompare(b.item_name));
+    state.filteredTargetItems = state.targetItems.slice();
+
+    if (state.selectedTargetItemSlug) {
+      state.selectedTargetItem = state.targetItems.find((entry) => entry.item_slug === state.selectedTargetItemSlug) || null;
+    }
+
+    return state.targetItems;
+  })();
+
+  try {
+    return await targetItemCatalogPromise;
+  } finally {
+    targetItemCatalogPromise = null;
+  }
 }
 
 function matchesActivityFilter(activity, query) {
@@ -478,8 +577,77 @@ function renderActivityGrid() {
   });
 }
 
-function renderModalPicker() {
+function renderTargetItemGrid() {
+  const list = state.filteredTargetItems;
+  elements.modalCountLabel.textContent = `${formatNumber(list.length)} shown`;
+  if (!list.length) {
+    elements.activityGrid.innerHTML = '<div class="results-empty">No items match the current filter.</div>';
+    return;
+  }
+
+  elements.activityGrid.innerHTML = "";
+  list.forEach((entry) => {
+    const button = document.createElement("button");
+    button.className = `activity-tile${entry.item_slug === state.selectedTargetItemSlug ? " is-active" : ""}`;
+    button.type = "button";
+    const image = entry.item_asset_path
+      ? `<img src="${assetUrl(entry.item_asset_path)}" alt="${escapeHtml(entry.item_name)} sprite">`
+      : '<div class="activity-tile-fallback">No art</div>';
+    const activityNames = entry.activities.slice(0, 2).map((activity) => activity.name);
+    const overflowCount = Math.max(0, entry.activity_count - activityNames.length);
+    const sourceText = `${formatNumber(entry.activity_count)} ${entry.activity_count === 1 ? "boss" : "bosses"}${activityNames.length ? ` · ${activityNames.join(", ")}${overflowCount ? ` +${overflowCount}` : ""}` : ""}`;
+    button.innerHTML = `
+      ${image}
+      <strong>${escapeHtml(entry.item_name)}</strong>
+      <small>${escapeHtml(sourceText)}</small>
+    `;
+    button.addEventListener("click", () => selectTargetItem(entry.item_slug));
+    elements.activityGrid.appendChild(button);
+  });
+}
+
+function configureModalForCurrentMode() {
+  const supportedToggle = elements.modalSupportedOnly.closest("label");
+  if (state.pickerMode === "item") {
+    elements.activityModalTitle.textContent = "Select an item";
+    elements.modalSearch.placeholder = "Search items, uniques, pets, or supplies";
+    elements.modalHintLabel.textContent = "Choose a sprite to compare only the bosses that can drop it";
+    if (supportedToggle) {
+      supportedToggle.hidden = true;
+    }
+    elements.modalSupportedOnly.checked = false;
+    return;
+  }
+
+  elements.activityModalTitle.textContent = "Select an activity";
+  elements.modalSearch.placeholder = "Search bosses, raids, clues, or Mimic";
+  elements.modalHintLabel.textContent = "Choose a sprite to load the simulator";
+  if (supportedToggle) {
+    supportedToggle.hidden = false;
+  }
+}
+
+function renderModalLoading(message) {
+  elements.modalCountLabel.textContent = "Loading...";
+  elements.activityGrid.innerHTML = `<div class="results-empty">${escapeHtml(message)}</div>`;
+}
+
+async function renderModalPicker() {
+  configureModalForCurrentMode();
   const search = elements.modalSearch.value.trim().toLowerCase();
+  if (state.pickerMode === "item") {
+    await ensureTargetItemCatalogLoaded();
+    state.filteredTargetItems = state.targetItems
+      .filter((entry) => matchesTargetItemFilter(entry, search))
+      .sort((a, b) => {
+        if (a.item_slug === state.selectedTargetItemSlug) return -1;
+        if (b.item_slug === state.selectedTargetItemSlug) return 1;
+        return a.item_name.localeCompare(b.item_name);
+      });
+    renderTargetItemGrid();
+    return;
+  }
+
   const supportedOnly = elements.modalSupportedOnly.checked;
   state.filteredActivities = state.activities
     .filter((activity) => (!supportedOnly || (activity.supported && !activity.simulation_disabled)) && matchesActivityFilter(activity, search))
@@ -491,12 +659,17 @@ function renderModalPicker() {
   renderActivityGrid();
 }
 
-function openActivityModal() {
+async function openActivityModal() {
+  state.pickerMode = state.simulationMode === "target" ? "item" : "activity";
   elements.activityModal.hidden = false;
   document.body.classList.add("modal-open");
   elements.modalSearch.value = "";
   elements.modalSupportedOnly.checked = false;
-  renderModalPicker();
+  configureModalForCurrentMode();
+  if (state.pickerMode === "item" && !state.targetItems.length) {
+    renderModalLoading("Loading the global item catalog for eligible bosses...");
+  }
+  await renderModalPicker();
   window.requestAnimationFrame(() => {
     elements.modalSearch.focus();
   });
@@ -536,23 +709,67 @@ function getActiveActivityView(activity = state.selectedActivity) {
 }
 
 function renderActivityHeader(activity, view = getActiveActivityView(activity)) {
-  const label = activity?.name || "Select an activity";
-  elements.activityPickerTrigger.textContent = "Select item";
-  elements.activityPickerTrigger.title = `Current activity: ${label}. Click to change the activity.`;
-  elements.activityPickerTrigger.setAttribute("aria-label", `Current activity: ${label}. Click to change the activity.`);
+  const isGpMode = state.simulationMode === "gp";
+  const isTargetMode = state.simulationMode === "target";
+  const targetItem = state.selectedTargetItem;
+  const buttonLabel = isTargetMode ? "Select item" : "Select boss";
+  const currentLabel = isTargetMode
+    ? (targetItem?.item_name || "Select an item")
+    : (activity?.name || "Select a boss");
 
-  if (!activity) {
-    const chips = state.simulationMode === "gp"
+  elements.activityPickerTrigger.textContent = buttonLabel;
+  elements.activityPickerTrigger.title = `${currentLabel}. Click to change it.`;
+  elements.activityPickerTrigger.setAttribute("aria-label", `${currentLabel}. Click to change it.`);
+
+  if (isGpMode) {
+    const chips = [
+      "GP comparison",
+      `${formatNumber(getGpEligibleActivities().length)} eligible bosses`,
+      "Kill-based only",
+    ];
+    elements.activityMeta.innerHTML = chips.map((text) => `<span class="meta-chip">${escapeHtml(text)}</span>`).join("");
+    elements.activityNote.textContent = "Enter a GP target and rank the eligible kill-based bosses by median simulated KC.";
+    elements.activityNote.hidden = false;
+    elements.sourceLink.href = "#";
+    elements.sourceLink.hidden = true;
+    elements.activityImage.removeAttribute("src");
+    elements.activityImage.alt = "";
+    elements.activityImage.hidden = true;
+    return;
+  }
+
+  if (isTargetMode) {
+    const chips = targetItem
       ? [
-          "GP comparison",
-          `${formatNumber(getGpEligibleActivities().length)} eligible bosses`,
-          "Kill-based only",
+          "Drop comparison",
+          `${formatNumber(targetItem.activity_count)} ${targetItem.activity_count === 1 ? "boss" : "bosses"} can drop this item`,
+          `Cap ${formatNumber(MAX_SIM_CAP)} kc`,
         ]
-      : [];
+      : ["Drop comparison", "Choose an item to begin"];
     elements.activityMeta.innerHTML = chips
       .filter(Boolean)
       .map((text) => `<span class="meta-chip">${escapeHtml(text)}</span>`)
       .join("");
+    elements.activityNote.textContent = targetItem
+      ? "This mode compares only the kill-based bosses that can drop the selected item and ranks them by median simulated KC."
+      : "Pick an item to compare only the bosses that can drop it.";
+    elements.activityNote.hidden = false;
+    elements.sourceLink.href = "#";
+    elements.sourceLink.hidden = true;
+    if (targetItem?.item_asset_path) {
+      elements.activityImage.src = assetUrl(targetItem.item_asset_path);
+      elements.activityImage.alt = `${targetItem.item_name} sprite`;
+      elements.activityImage.hidden = false;
+    } else {
+      elements.activityImage.removeAttribute("src");
+      elements.activityImage.alt = "";
+      elements.activityImage.hidden = true;
+    }
+    return;
+  }
+
+  if (!activity) {
+    elements.activityMeta.innerHTML = "";
     elements.activityNote.textContent = "";
     elements.activityNote.hidden = true;
     elements.sourceLink.href = "#";
@@ -563,34 +780,26 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
     return;
   }
 
-  const chips = state.simulationMode === "gp"
-    ? [
-        "GP comparison",
-        `${formatNumber(getGpEligibleActivities().length)} eligible bosses`,
-        "Kill-based only",
-      ]
-    : [
-        getActivityTypeLabel(activity),
-        activity.supported && !activity.simulation_disabled ? "Simulation ready" : "Reference only",
-      ];
+  const chips = [
+    getActivityTypeLabel(activity),
+    activity.supported && !activity.simulation_disabled ? "Simulation ready" : "Reference only",
+  ];
 
-  if (state.simulationMode !== "gp") {
-    if (activity.variants?.length) {
-      chips.push(`${activity.variants.length} variants`);
-    }
-    if (view?.simulation?.reward_roll_range) {
-      chips.push(`${view.simulation.reward_roll_range.min}-${view.simulation.reward_roll_range.max} reward rolls`);
-    }
-    if (getRaidType(activity.slug)) {
-      chips.push("Raid-specific reward model");
-    }
-    const clueUiDetails = getClueUiDetails(activity.slug);
-    if (clueUiDetails?.tertiary) {
-      chips.push(clueUiDetails.tertiary);
-    }
-    if (clueUiDetails?.mimic) {
-      chips.push(`Optional ${clueUiDetails.mimic}`);
-    }
+  if (activity.variants?.length) {
+    chips.push(`${activity.variants.length} variants`);
+  }
+  if (view?.simulation?.reward_roll_range) {
+    chips.push(`${view.simulation.reward_roll_range.min}-${view.simulation.reward_roll_range.max} reward rolls`);
+  }
+  if (getRaidType(activity.slug)) {
+    chips.push("Raid-specific reward model");
+  }
+  const clueUiDetails = getClueUiDetails(activity.slug);
+  if (clueUiDetails?.tertiary) {
+    chips.push(clueUiDetails.tertiary);
+  }
+  if (clueUiDetails?.mimic) {
+    chips.push(`Optional ${clueUiDetails.mimic}`);
   }
 
   elements.activityMeta.innerHTML = chips
@@ -599,24 +808,24 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
     .join("");
 
   const noteParts = [];
-  if (state.simulationMode !== "gp") {
-    if (activity.note) noteParts.push(activity.note);
-    if (view?.note && view.note !== activity.note) noteParts.push(view.note);
-    if (view?.simulation?.note && view.simulation.note !== activity.simulation?.note) noteParts.push(view.simulation.note);
-    if (!noteParts.length && activity.simulation?.note) noteParts.push(activity.simulation.note);
-  }
+  if (activity.note) noteParts.push(activity.note);
+  if (view?.note && view.note !== activity.note) noteParts.push(view.note);
+  if (view?.simulation?.note && view.simulation.note !== activity.simulation?.note) noteParts.push(view.simulation.note);
+  if (!noteParts.length && activity.simulation?.note) noteParts.push(activity.simulation.note);
   elements.activityNote.textContent = noteParts.join(" ");
   elements.activityNote.hidden = !elements.activityNote.textContent;
 
   const sourceHref = view?.wiki_url || activity.wiki_url || "#";
   elements.sourceLink.href = sourceHref;
-  elements.sourceLink.hidden = state.simulationMode === "gp" || !sourceHref || sourceHref === "#";
+  elements.sourceLink.hidden = !sourceHref || sourceHref === "#";
 
   if (activity.activity_image_path) {
     elements.activityImage.src = assetUrl(activity.activity_image_path);
     elements.activityImage.alt = `${activity.name} artwork`;
     elements.activityImage.hidden = false;
   } else {
+    elements.activityImage.removeAttribute("src");
+    elements.activityImage.alt = "";
     elements.activityImage.hidden = true;
   }
 }
@@ -637,7 +846,14 @@ function showResultsStage(showActions = true) {
 
 function buildResultsContext(result = null) {
   const activity = state.selectedActivity;
+  const targetItem = result?.mode === "target_compare"
+    ? {
+        item_name: result.target_item_name,
+        item_asset_path: result.target_item_asset_path,
+      }
+    : state.selectedTargetItem;
   const isGpMode = result?.mode === "gp" || state.simulationMode === "gp";
+  const isTargetComparison = result?.mode === "target_compare" || state.simulationMode === "target";
 
   if (isGpMode) {
     const chips = [
@@ -654,6 +870,31 @@ function buildResultsContext(result = null) {
         <span class="eyebrow">Result Scope</span>
         <h4>GP target comparison</h4>
         <div class="meta-row">${chips}</div>
+      </article>
+    `;
+  }
+
+  if (isTargetComparison) {
+    const image = targetItem?.item_asset_path
+      ? `<img src="${assetUrl(targetItem.item_asset_path)}" alt="${escapeHtml(targetItem.item_name)} sprite">`
+      : '<div class="results-context-fallback">?</div>';
+    const chips = [
+      "Drop comparison",
+      result?.boss_count ? `${formatNumber(result.boss_count)} bosses ranked` : (targetItem?.activity_count ? `${formatNumber(targetItem.activity_count)} bosses can drop this` : null),
+      result?.target_count ? `${formatNumber(result.target_count)}x target` : null,
+    ]
+      .filter(Boolean)
+      .map((text) => `<span class="meta-chip">${escapeHtml(text)}</span>`)
+      .join("");
+
+    return `
+      <article class="results-context-card results-context-activity">
+        <div class="results-context-art">${image}</div>
+        <div class="results-context-copy">
+          <span class="eyebrow">Target Item</span>
+          <h4>${escapeHtml(targetItem?.item_name || "Selected item")}</h4>
+          <div class="meta-row">${chips}</div>
+        </div>
       </article>
     `;
   }
@@ -703,7 +944,9 @@ function buildScreenshotCardSvg() {
   const title = "OSRS Drop Simulator";
   const subtitle = result.mode === "gp"
     ? `GP target comparison · ${formatShortValue(result.target_gp_value || 0)} gp`
-    : `${state.selectedActivity?.name || "Selected activity"} · ${result.mode === "target" ? "Target chase" : "Attempts"}`;
+    : result.mode === "target_compare"
+      ? `${result.target_item_name || "Selected item"} · drop comparison`
+      : `${state.selectedActivity?.name || "Selected activity"} · ${result.mode === "target" ? "Target chase" : "Attempts"}`;
 
   const metricCards = result.mode === "gp"
     ? [
@@ -712,6 +955,13 @@ function buildScreenshotCardSvg() {
         ["Samples / boss", formatNumber(result.sample_count || 0)],
         ["Fastest median", result.rankings?.[0] ? `${formatNumber(result.rankings[0].median_kills)} kc` : "N/A"],
       ]
+    : result.mode === "target_compare"
+      ? [
+          ["Target item", result.target_item_name || "N/A"],
+          ["Target count", `${formatNumber(result.target_count || 0)}x`],
+          ["Bosses ranked", formatNumber(result.boss_count || 0)],
+          ["Fastest median", result.rankings?.[0] ? `${formatNumber(result.rankings[0].median_kills)} kc` : "N/A"],
+        ]
     : [
         ["Runs", formatNumber(result.kills_completed || 0)],
         ["Total value", `${formatShortValue(result.total_ge_value || 0)} gp`],
@@ -730,11 +980,13 @@ function buildScreenshotCardSvg() {
     `;
   }).join("");
 
-  const rows = result.mode === "gp"
+  const rows = result.mode === "gp" || result.mode === "target_compare"
     ? (result.rankings || []).slice(0, 10).map((entry, index) => ({
         left: `${index + 1}. ${entry.name}`,
         right: entry.capped ? `${formatNumber(25000000)}+ kc` : `${formatNumber(entry.median_kills)} kc`,
-        sub: `${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill`,
+        sub: result.mode === "gp"
+          ? `${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill`
+          : `${formatNumber(result.target_count || 1)}x ${result.target_item_name || "target"} chase`,
       }))
     : (result.top_items || []).slice(0, 10).map((item) => ({
         left: item.item_name,
@@ -756,6 +1008,8 @@ function buildScreenshotCardSvg() {
 
   const footer = result.mode === "gp"
     ? "Ranked by median simulated KC across eligible standard bosses."
+    : result.mode === "target_compare"
+      ? `Ranked by median simulated KC across bosses that can drop ${result.target_item_name || "the selected item"}.`
     : (result.mode === "target"
       ? `Target ${result.target_reached ? "reached" : "not reached before the cap"}.`
       : "End-state loot summary.");
@@ -767,7 +1021,7 @@ function buildScreenshotCardSvg() {
       <text x="44" y="68" fill="#f0ddb0" font-size="30" font-weight="700">${escapeSvgText(title)}</text>
       <text x="44" y="98" fill="#9eacbb" font-size="18">${escapeSvgText(subtitle)}</text>
       ${metricSvg}
-      <text x="44" y="276" fill="#d8bc72" font-size="16" font-weight="600">${escapeSvgText(result.mode === "gp" ? "KC ranking" : "Top loot")}</text>
+      <text x="44" y="276" fill="#d8bc72" font-size="16" font-weight="600">${escapeSvgText(result.mode === "gp" || result.mode === "target_compare" ? "KC ranking" : "Top loot")}</text>
       ${rowsSvg}
       <text x="44" y="${height - 54}" fill="#9eacbb" font-size="14">${escapeSvgText(footer)}</text>
     </svg>
@@ -777,7 +1031,11 @@ function buildScreenshotCardSvg() {
     svg,
     width,
     height,
-    filename: result.mode === "gp" ? "osrs-gp-comparison" : (state.selectedActivity?.slug || "osrs-drop-sim"),
+    filename: result.mode === "gp"
+      ? "osrs-gp-comparison"
+      : result.mode === "target_compare"
+        ? `osrs-item-comparison-${result.target_item_slug || "target"}`
+        : (state.selectedActivity?.slug || "osrs-drop-sim"),
   };
 }
 
@@ -869,7 +1127,7 @@ function renderTargetOptions(activity) {
 }
 
 function getSetupActivityView() {
-  return state.simulationMode === "gp" ? null : getActiveActivityView(state.selectedActivity);
+  return state.simulationMode === "fixed" ? getActiveActivityView(state.selectedActivity) : null;
 }
 
 function setSimulationMode(mode) {
@@ -884,9 +1142,12 @@ function setSimulationMode(mode) {
   elements.modeTargetButton.setAttribute("aria-selected", String(isTargetMode));
   elements.modeGpButton.setAttribute("aria-selected", String(isGpMode));
   elements.killsField.hidden = !isFixedMode;
-  elements.targetItemField.hidden = !isTargetMode;
+  elements.targetItemField.hidden = true;
   elements.targetCountField.hidden = !isTargetMode;
   elements.targetGpField.hidden = !isGpMode;
+  if (isTargetMode) {
+    void ensureTargetItemCatalogLoaded();
+  }
   showSetupStage();
   refreshSelectedActivityView(false);
 }
@@ -896,11 +1157,9 @@ function renderSimulationState(activity) {
   const isTargetMode = state.simulationMode === "target";
   const isGpMode = state.simulationMode === "gp";
   const modeChosen = Boolean(state.simulationMode);
+  const selectedTargetItem = state.selectedTargetItem;
 
   elements.killsInput.max = String(MAX_SIM_CAP);
-  elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
-  elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
-  elements.targetGpValue.value = String(clampGpTarget(elements.targetGpValue.value || 1));
 
   if (!modeChosen) {
     elements.simulateButton.disabled = true;
@@ -953,12 +1212,12 @@ function renderSimulationState(activity) {
     return;
   }
 
-  if (!activity) {
+  if (isTargetMode && !selectedTargetItem) {
     elements.simulateButton.disabled = true;
     elements.variantField.hidden = true;
-    elements.killsField.hidden = !isFixedMode;
-    elements.targetItemField.hidden = !isTargetMode;
-    elements.targetCountField.hidden = !isTargetMode;
+    elements.killsField.hidden = true;
+    elements.targetItemField.hidden = true;
+    elements.targetCountField.hidden = true;
     elements.targetGpField.hidden = true;
     elements.encounterSettings.hidden = true;
     elements.encounterSettings.open = false;
@@ -973,7 +1232,59 @@ function renderSimulationState(activity) {
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = true;
     elements.killsInput.disabled = true;
-    elements.simulationHelp.textContent = "Choose an activity to load the simulator.";
+    elements.simulationHelp.textContent = "Choose an item to compare only the bosses that can drop it.";
+    return;
+  }
+
+  if (!activity && !isTargetMode) {
+    elements.simulateButton.disabled = true;
+    elements.variantField.hidden = true;
+    elements.killsField.hidden = !isFixedMode;
+    elements.targetItemField.hidden = true;
+    elements.targetCountField.hidden = true;
+    elements.targetGpField.hidden = true;
+    elements.encounterSettings.hidden = true;
+    elements.encounterSettings.open = false;
+    elements.advancedModifiers.hidden = true;
+    elements.advancedModifiers.open = false;
+    elements.clueControls.hidden = true;
+    elements.raidControls.hidden = true;
+    elements.yamaAdvancedControls.hidden = true;
+    elements.coxAdvancedControls.hidden = true;
+    elements.toaAdvancedControls.hidden = true;
+    elements.targetItem.disabled = true;
+    elements.targetCount.disabled = true;
+    elements.targetGpValue.disabled = true;
+    elements.killsInput.disabled = true;
+    elements.simulationHelp.textContent = "Choose a boss or activity to load the simulator.";
+    return;
+  }
+
+  if (isTargetMode && selectedTargetItem) {
+    const bossCount = selectedTargetItem.activity_count || 0;
+    const disabled = bossCount === 0;
+    elements.simulateButton.disabled = disabled;
+    elements.variantField.hidden = true;
+    elements.killsField.hidden = true;
+    elements.targetItemField.hidden = true;
+    elements.targetCountField.hidden = false;
+    elements.targetGpField.hidden = true;
+    elements.targetItem.disabled = true;
+    elements.targetCount.disabled = disabled;
+    elements.targetGpValue.disabled = true;
+    elements.killsInput.disabled = true;
+    elements.encounterSettings.hidden = true;
+    elements.encounterSettings.open = false;
+    elements.advancedModifiers.hidden = true;
+    elements.advancedModifiers.open = false;
+    elements.clueControls.hidden = true;
+    elements.raidControls.hidden = true;
+    elements.yamaAdvancedControls.hidden = true;
+    elements.coxAdvancedControls.hidden = true;
+    elements.toaAdvancedControls.hidden = true;
+    elements.simulationHelp.textContent = disabled
+      ? "No eligible bosses were found for this item."
+      : `Choose the quantity to chase, then simulate. The results view will rank ${formatNumber(bossCount)} ${bossCount === 1 ? "boss" : "bosses"} that can drop this item by median simulated KC.`;
     return;
   }
 
@@ -990,8 +1301,8 @@ function renderSimulationState(activity) {
   elements.simulateButton.disabled = disabled;
   elements.variantField.hidden = isGpMode || !hasVariantOptions;
   elements.killsField.hidden = !isFixedMode;
-  elements.targetItemField.hidden = !isTargetMode;
-  elements.targetCountField.hidden = !isTargetMode;
+  elements.targetItemField.hidden = true;
+  elements.targetCountField.hidden = true;
   elements.targetGpField.hidden = !isGpMode;
   elements.targetItem.disabled = disabled || !isTargetMode;
   elements.targetCount.disabled = disabled || !isTargetMode;
@@ -1110,15 +1421,22 @@ function collectSimulationPayloadAndOptions() {
   }
 
   const isGpMode = state.simulationMode === "gp";
-  if (!isGpMode && !state.selectedActivity) {
+  const isTargetMode = state.simulationMode === "target";
+  const isFixedMode = state.simulationMode === "fixed";
+  if (isFixedMode && !state.selectedActivity) {
+    return null;
+  }
+  if (isTargetMode && !state.selectedTargetItem) {
     return null;
   }
 
-  const activityView = isGpMode ? null : getActiveActivityView(state.selectedActivity);
-  const rootSlug = state.selectedActivity?.slug || null;
+  const activityView = isFixedMode ? getActiveActivityView(state.selectedActivity) : null;
+  const rootSlug = isFixedMode ? (state.selectedActivity?.slug || null) : null;
   const payload = isGpMode
     ? null
-    : {
+    : isTargetMode
+      ? null
+      : {
         ...activityView,
         slug: rootSlug,
         supported: activityView.supported ?? state.selectedActivity.supported,
@@ -1130,10 +1448,10 @@ function collectSimulationPayloadAndOptions() {
   }
 
   const options = {
-    kills: state.simulationMode === "fixed" ? clampRuns(elements.killsInput.value || 1) : 1,
-    target_item_slug: state.simulationMode === "target" ? elements.targetItem.value || null : null,
-    target_count: state.simulationMode === "target" ? Math.max(1, Math.floor(Number(elements.targetCount.value || 1))) : 1,
-    target_gp_value: state.simulationMode === "gp" ? clampGpTarget(elements.targetGpValue.value || 1) : null,
+    kills: isFixedMode ? clampRuns(elements.killsInput.value || 1) : 1,
+    target_item_slug: isTargetMode ? state.selectedTargetItem.item_slug : null,
+    target_count: isTargetMode ? Math.max(1, Math.floor(Number(elements.targetCount.value || 1))) : 1,
+    target_gp_value: isGpMode ? clampGpTarget(elements.targetGpValue.value) : null,
     max_chase_kills: MAX_SIM_CAP,
   };
 
@@ -1183,24 +1501,56 @@ function renderRunSummary() {
 
   const data = collectSimulationPayloadAndOptions();
   if (!data) {
+    if (state.simulationMode === "gp") {
+      const rawGpTarget = clampGpTarget(elements.targetGpValue.value);
+      const cards = [
+        buildSummaryCard("Scope", "All eligible bosses"),
+        buildSummaryCard("Mode", "GP target"),
+        buildSummaryCard("Target value", rawGpTarget ? `${formatShortValue(rawGpTarget)} gp` : "Enter GP"),
+        buildSummaryCard("Boss pool", formatNumber(getGpEligibleActivities().length)),
+      ];
+      elements.runSummary.innerHTML = cards.join("");
+      return;
+    }
+    if (state.simulationMode === "target" && state.selectedTargetItem) {
+      const targetCount = Math.max(1, Math.floor(Number(elements.targetCount.value || 1)));
+      const cards = [
+        buildSummaryCard("Mode", "Drop comparison"),
+        buildSummaryCard("Item", state.selectedTargetItem.item_name),
+        buildSummaryCard("Boss pool", formatNumber(state.selectedTargetItem.activity_count || 0)),
+        buildSummaryCard("Target count", formatNumber(targetCount)),
+        buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)),
+      ];
+      elements.runSummary.innerHTML = cards.join("");
+      return;
+    }
     elements.runSummary.innerHTML = "";
     return;
   }
 
   const { activityView, rootSlug, options } = data;
   const isGpMode = state.simulationMode === "gp";
+  const isTargetMode = state.simulationMode === "target";
+  if (isTargetMode) {
+    const cards = [
+      buildSummaryCard("Mode", "Drop comparison"),
+      buildSummaryCard("Item", state.selectedTargetItem?.item_name || "Selected item"),
+      buildSummaryCard("Boss pool", formatNumber(state.selectedTargetItem?.activity_count || 0)),
+      buildSummaryCard("Target count", formatNumber(options.target_count)),
+      buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)),
+    ];
+    elements.runSummary.innerHTML = cards.join("");
+    return;
+  }
+
   const cards = [
     buildSummaryCard(isGpMode ? "Scope" : "Activity", isGpMode ? "All eligible bosses" : state.selectedActivity.name),
     state.selectedVariantId && !isGpMode ? buildSummaryCard("Variant", activityView.label || state.selectedVariantId) : "",
-    buildSummaryCard("Mode", state.simulationMode === "target" ? "Target chase" : (isGpMode ? "GP target" : "Attempts")),
+    buildSummaryCard("Mode", isGpMode ? "GP target" : "Attempts"),
   ];
 
-  if (state.simulationMode === "target") {
-    cards.push(buildSummaryCard("Target", elements.targetItem.selectedOptions[0]?.textContent || "Choose an item"));
-    cards.push(buildSummaryCard("Target count", formatNumber(options.target_count)));
-    cards.push(buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)));
-  } else if (isGpMode) {
-    cards.push(buildSummaryCard("Target value", `${formatShortValue(options.target_gp_value || 0)} gp`));
+  if (isGpMode) {
+    cards.push(buildSummaryCard("Target value", options.target_gp_value ? `${formatShortValue(options.target_gp_value)} gp` : "Enter GP"));
     cards.push(buildSummaryCard("Boss pool", formatNumber(getGpEligibleActivities().length)));
     cards.push(buildSummaryCard("Kill cap", formatNumber(MAX_SIM_CAP)));
   } else {
@@ -1268,13 +1618,8 @@ function renderPlaceholderResults(message = "Run a simulation to see the loot re
 function refreshSelectedActivityView(resetResults = false) {
   renderSetupProgress();
   const view = getSetupActivityView();
-  const headerActivity = state.simulationMode === "gp" ? null : state.selectedActivity;
+  const headerActivity = state.simulationMode === "fixed" ? state.selectedActivity : null;
   renderActivityHeader(headerActivity, view);
-  if (view) {
-    renderTargetOptions(view);
-  } else {
-    elements.targetItem.innerHTML = '<option value="">Select a target item</option>';
-  }
   renderSimulationState(view);
   renderRunSummary();
   if (resetResults) {
@@ -1390,7 +1735,7 @@ function buildGpPreviewTable(result) {
   `;
 }
 
-function buildGpLootDetail(entry) {
+function buildComparisonLootDetail(entry, result) {
   if (!entry?.preview_result) {
     return `
       <div class="review-card">
@@ -1405,15 +1750,21 @@ function buildGpLootDetail(entry) {
 
   const preview = entry.preview_result;
   const averageValue = preview.kills_completed ? Math.round((preview.total_ge_value || 0) / preview.kills_completed) : 0;
+  const isGpMode = result?.mode === "gp";
+  const title = isGpMode ? `${entry.name} loot preview` : `${entry.name} chase preview`;
+  const subtitle = isGpMode
+    ? "Representative sample from the median GP chase run for this boss"
+    : `Representative sample from the median ${formatNumber(result?.target_count || 1)}x ${escapeHtml(result?.target_item_name || "item")} chase for this boss`;
+  const primaryMetricLabel = isGpMode ? "KC to target" : "Median chase KC";
 
   return `
     <div class="review-card gp-detail-card">
       <div class="review-card-header">
-        <h3>${escapeHtml(entry.name)} loot preview</h3>
-        <span class="subtle">Representative sample from the median GP chase run for this boss</span>
+        <h3>${escapeHtml(title)}</h3>
+        <span class="subtle">${subtitle}</span>
       </div>
       <div class="metric-grid gp-detail-metrics">
-        ${buildMetricCard("KC to target", entry.capped ? `${formatNumber(MAX_SIM_CAP)}+` : formatNumber(entry.median_kills), true)}
+        ${buildMetricCard(primaryMetricLabel, entry.capped ? `${formatNumber(MAX_SIM_CAP)}+` : formatNumber(entry.median_kills), true)}
         ${buildMetricCard("Total value", `${formatShortValue(preview.total_ge_value || 0)} gp`)}
         ${buildMetricCard("Value / kill", `${formatShortValue(averageValue)} gp`)}
         ${buildMetricCard("Distinct items", formatNumber(preview.distinct_items || 0))}
@@ -1423,7 +1774,7 @@ function buildGpLootDetail(entry) {
   `;
 }
 
-function buildGpRankRow(entry, index, maxKillsForScale, selectedSlug) {
+function buildComparisonRankRow(entry, index, maxKillsForScale, selectedSlug, resultMode, targetItemName) {
   const image = entry.activity_image_path ? `<img src="${assetUrl(entry.activity_image_path)}" alt="">` : '<div class="gp-rank-sprite-fallback">?</div>';
   const fillPercent = entry.capped
     ? 100
@@ -1433,6 +1784,9 @@ function buildGpRankRow(entry, index, maxKillsForScale, selectedSlug) {
     ? `Sample ${formatNumber(entry.min_kills)}`
     : `Range ${formatNumber(entry.min_kills)}-${formatNumber(entry.max_kills)}`;
   const isSelected = entry.slug === selectedSlug;
+  const secondaryLabel = resultMode === "gp"
+    ? `${rangeLabel} · ${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill`
+    : `${rangeLabel} · ${targetItemName || "Target"} chase`;
 
   return `
     <button class="gp-rank-row${entry.capped ? " is-capped" : ""}${isSelected ? " is-selected" : ""}" type="button" data-gp-slug="${escapeHtml(entry.slug)}">
@@ -1441,7 +1795,7 @@ function buildGpRankRow(entry, index, maxKillsForScale, selectedSlug) {
         <div class="gp-rank-sprite">${image}</div>
         <div class="gp-rank-copy">
           <strong>${escapeHtml(entry.name)}</strong>
-          <span>${escapeHtml(rangeLabel)} · ${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill</span>
+          <span>${escapeHtml(secondaryLabel)}</span>
         </div>
         <div class="gp-rank-kc">${escapeHtml(killsLabel)}</div>
       </div>
@@ -1452,7 +1806,7 @@ function buildGpRankRow(entry, index, maxKillsForScale, selectedSlug) {
   `;
 }
 
-function renderGpComparisonResults(result) {
+function renderComparisonResults(result) {
   showResultsStage(true);
   state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
@@ -1466,34 +1820,43 @@ function renderGpComparisonResults(result) {
   const scaleMax = (uncapped.length ? uncapped[uncapped.length - 1].median_kills : (rankings.length ? rankings[rankings.length - 1].median_kills : 1)) || 1;
   const selectedEntry = rankings.find((entry) => entry.slug === state.activeGpRankingSlug) || rankings[0] || null;
   const chartRows = rankings
-    .map((entry, index) => buildGpRankRow(entry, index, scaleMax, state.activeGpRankingSlug))
+    .map((entry, index) => buildComparisonRankRow(entry, index, scaleMax, state.activeGpRankingSlug, result.mode, result.target_item_name))
     .join("");
+  const isGpMode = result.mode === "gp";
+  const comparisonLabel = isGpMode ? "GP comparison mode" : "Drop comparison mode";
+  const comparisonCopy = isGpMode
+    ? "Ranked by median simulated KC to the target GP value. Only standard kill-based bosses are included."
+    : `Ranked by median simulated KC to reach ${formatNumber(result.target_count || 1)}x ${escapeHtml(result.target_item_name || "the selected item")}. Only bosses that can drop this item are included.`;
+  const chartTitle = isGpMode ? "Boss KC ranking" : `${escapeHtml(result.target_item_name || "Item")} KC ranking`;
+  const chartSubtle = isGpMode
+    ? "Lowest simulated KC first, highest last"
+    : "Only bosses that can drop this item are ranked";
 
   elements.simulationResults.innerHTML = `
     <div class="results-shell gp-results-shell">
       <div class="metric-grid">
-        ${buildMetricCard("Target value", `${formatShortValue(result.target_gp_value || 0)} gp`, true)}
+        ${isGpMode ? buildMetricCard("Target value", `${formatShortValue(result.target_gp_value || 0)} gp`, true) : buildMetricCard("Target item", result.target_item_name || "Selected item", true)}
         ${buildMetricCard("Bosses ranked", formatNumber(result.boss_count || rankings.length))}
-        ${buildMetricCard("Samples / boss", formatNumber(result.sample_count || 0))}
+        ${isGpMode ? buildMetricCard("Samples / boss", formatNumber(result.sample_count || 0)) : buildMetricCard("Target count", `${formatNumber(result.target_count || 1)}x`)}
         ${buildMetricCard("Fastest median", best ? `${formatNumber(best.median_kills)} kc` : "N/A")}
       </div>
 
       <div class="review-note">
-        <strong>GP comparison mode</strong>
-        <span>Ranked by median simulated KC to the target GP value. Only standard kill-based bosses are included.</span>
+        <strong>${comparisonLabel}</strong>
+        <span>${comparisonCopy}</span>
       </div>
 
       <div class="review-card gp-chart-card">
         <div class="review-card-header">
-          <h3>Boss KC ranking</h3>
-          <span class="subtle">Lowest simulated KC first, highest last</span>
+          <h3>${chartTitle}</h3>
+          <span class="subtle">${chartSubtle}</span>
         </div>
         <div class="gp-rank-list">
-          ${chartRows || '<div class="results-empty">No eligible bosses were available for GP comparison.</div>'}
+          ${chartRows || `<div class="results-empty">${isGpMode ? "No eligible bosses were available for GP comparison." : "No eligible bosses can drop the selected item."}</div>`}
         </div>
       </div>
 
-      ${buildGpLootDetail(selectedEntry)}
+      ${buildComparisonLootDetail(selectedEntry, result)}
     </div>
   `;
 }
@@ -1771,6 +2134,83 @@ async function runGpComparison(targetGpValue) {
   };
 }
 
+async function runTargetComparison(targetItem, targetCount) {
+  const sampleCount = TARGET_COMPARISON_SAMPLE_COUNT;
+  const runSalt = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const rankings = [];
+  const eligibleActivities = (targetItem?.activities || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+
+  for (let index = 0; index < eligibleActivities.length; index += 1) {
+    const summary = eligibleActivities[index];
+    setSimulationLoading(
+      `Comparing item drops ${formatNumber(index + 1)} / ${formatNumber(eligibleActivities.length)}...`,
+      `Running ${formatNumber(sampleCount)} simulated chase${sampleCount === 1 ? "" : "s"} per boss and ranking the median KC.`,
+    );
+
+    const activity = await loadActivityData(summary.slug);
+    const samples = [];
+    let totalKills = 0;
+    let totalValue = 0;
+
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+      const result = simulateActivity(activity, {
+        kills: 1,
+        target_item_slug: targetItem.item_slug,
+        target_count: targetCount,
+        max_chase_kills: MAX_SIM_CAP,
+        seed: `target:${runSalt}:${summary.slug}:${targetItem.item_slug}:${targetCount}:${sampleIndex}`,
+      });
+      samples.push({
+        kills: result.kills_completed || 0,
+        total_ge_value: result.total_ge_value || 0,
+        result,
+      });
+      totalKills += result.kills_completed || 0;
+      totalValue += result.total_ge_value || 0;
+    }
+
+    samples.sort((a, b) => a.kills - b.kills || a.total_ge_value - b.total_ge_value);
+    const medianSample = samples[Math.floor(samples.length / 2)] || { kills: MAX_SIM_CAP, result: null };
+    const medianKills = medianSample.kills || MAX_SIM_CAP;
+    rankings.push({
+      slug: summary.slug,
+      name: summary.name,
+      activity_image_path: summary.activity_image_path || activity.activity_image_path || null,
+      median_kills: medianKills,
+      min_kills: samples[0]?.kills || medianKills,
+      max_kills: samples[samples.length - 1]?.kills || medianKills,
+      avg_gp_per_kill: totalKills > 0 ? Math.round(totalValue / totalKills) : 0,
+      capped: !medianSample.result?.target_reached,
+      preview_result: medianSample.result,
+    });
+
+    if ((index + 1) % 4 === 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+  }
+
+  rankings.sort((a, b) => {
+    if (a.capped !== b.capped) {
+      return a.capped ? 1 : -1;
+    }
+    if (a.median_kills !== b.median_kills) {
+      return a.median_kills - b.median_kills;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    mode: "target_compare",
+    target_item_slug: targetItem.item_slug,
+    target_item_name: targetItem.item_name,
+    target_item_asset_path: targetItem.item_asset_path || null,
+    target_count: targetCount,
+    boss_count: rankings.length,
+    sample_count: sampleCount,
+    rankings,
+  };
+}
+
 async function selectActivity(slug) {
   state.selectedSlug = slug;
   renderActivityGrid();
@@ -1790,16 +2230,30 @@ async function selectActivity(slug) {
   }
 }
 
+function selectTargetItem(itemSlug) {
+  const targetItem = state.targetItems.find((entry) => entry.item_slug === itemSlug) || null;
+  state.selectedTargetItemSlug = targetItem?.item_slug || null;
+  state.selectedTargetItem = targetItem;
+  state.activeGpRankingSlug = null;
+  showSetupStage();
+  renderPlaceholderResults("Run simulation to see the loot review.");
+  refreshSelectedActivityView(false);
+  renderPlaceholderResults();
+  closeActivityModal();
+}
+
 async function loadApp() {
   state.status = await getJson("./data/index.json");
   state.activities = state.status.activities || [];
   state.filteredActivities = state.activities.slice();
-  renderModalPicker();
+  await renderModalPicker();
   refreshSelectedActivityView(false);
   renderPlaceholderResults();
 }
 
-elements.activityPickerTrigger.addEventListener("click", openActivityModal);
+elements.activityPickerTrigger.addEventListener("click", () => {
+  void openActivityModal();
+});
 elements.closeActivityPicker.addEventListener("click", closeActivityModal);
 elements.activityModal.addEventListener("click", (event) => {
   if (event.target.matches("[data-modal-close]")) {
@@ -1807,8 +2261,12 @@ elements.activityModal.addEventListener("click", (event) => {
   }
 });
 
-elements.modalSearch.addEventListener("input", renderModalPicker);
-elements.modalSupportedOnly.addEventListener("change", renderModalPicker);
+elements.modalSearch.addEventListener("input", () => {
+  void renderModalPicker();
+});
+elements.modalSupportedOnly.addEventListener("change", () => {
+  void renderModalPicker();
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !elements.activityModal.hidden) {
@@ -1852,8 +2310,8 @@ elements.modeGpButton.addEventListener("click", () => {
       }
     }
     if (event.target === elements.targetGpValue) {
-      const cleaned = clampGpTarget(elements.targetGpValue.value || 1);
-      if (String(cleaned) !== elements.targetGpValue.value && eventName === "change") {
+      const cleaned = clampGpTarget(elements.targetGpValue.value);
+      if (cleaned !== null && String(cleaned) !== elements.targetGpValue.value && eventName === "change") {
         elements.targetGpValue.value = String(cleaned);
       }
     }
@@ -1867,9 +2325,9 @@ elements.modeGpButton.addEventListener("click", () => {
 
 elements.simulationResults.addEventListener("click", (event) => {
   const gpButton = event.target.closest("[data-gp-slug]");
-  if (gpButton && state.lastResult?.mode === "gp") {
+  if (gpButton && (state.lastResult?.mode === "gp" || state.lastResult?.mode === "target_compare")) {
     state.activeGpRankingSlug = gpButton.dataset.gpSlug;
-    renderGpComparisonResults(state.lastResult);
+    renderComparisonResults(state.lastResult);
     return;
   }
   const button = event.target.closest("[data-results-tab]");
@@ -1903,18 +2361,18 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     return;
   }
   if (requiresActivitySelection() && !state.selectedActivity) {
-    elements.simulationHelp.textContent = "Choose an activity before running the simulator.";
+    elements.simulationHelp.textContent = "Choose a boss or activity before running the simulator.";
+    elements.activityPickerTrigger.focus();
+    return;
+  }
+  if (requiresItemSelection() && !state.selectedTargetItem) {
+    elements.simulationHelp.textContent = "Choose an item before running the comparison.";
     elements.activityPickerTrigger.focus();
     return;
   }
 
   const data = collectSimulationPayloadAndOptions();
   if (!data) {
-    return;
-  }
-  if (state.simulationMode === "target" && !data.options.target_item_slug) {
-    elements.simulationHelp.textContent = "Choose a target item before running a target chase.";
-    elements.targetItem.focus();
     return;
   }
   if (state.simulationMode === "gp" && !(data.options.target_gp_value > 0)) {
@@ -1934,7 +2392,10 @@ elements.simulationForm.addEventListener("submit", async (event) => {
   try {
     if (state.simulationMode === "gp") {
       const result = await runGpComparison(options.target_gp_value);
-      renderGpComparisonResults(result);
+      renderComparisonResults(result);
+    } else if (state.simulationMode === "target") {
+      const result = await runTargetComparison(state.selectedTargetItem, options.target_count);
+      renderComparisonResults(result);
     } else {
       const result = simulateActivity(payload, options);
       renderSimulationResults(result);

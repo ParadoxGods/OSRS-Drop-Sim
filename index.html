@@ -22,8 +22,8 @@
                   <div class="mode-guide">
                     <p class="mode-guide-arrow">choose mode here</p>
                     <div class="mode-switch notebook-tabs" role="tablist" aria-label="Simulation mode">
-                      <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
-                      <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
+                      <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Simulate attempts</button>
+                      <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Simulate drop</button>
                       <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
                     </div>
                     <p class="mode-guide-copy">Pick a mode to change the settings shown below.</p>
@@ -31,7 +31,7 @@
 
                   <div class="review-card-header">
                     <h3>Current setup</h3>
-                    <span class="subtle">Pick an encounter, adjust the run, then roll it.</span>
+                    <span class="subtle">Pick a mode, choose the thing you want to simulate, then roll it.</span>
                   </div>
 
                   <div id="activitySelectionBlock" class="activity-strip setup-activity-strip" hidden>
@@ -40,7 +40,7 @@
                       <div class="activity-art-fallback">?</div>
                     </div>
                     <div class="activity-copy">
-                      <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select item</button>
+                      <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select boss</button>
                     </div>
                   </div>
 
@@ -286,7 +286,7 @@
       </div>
       <div class="picker-meta">
         <span id="modalCountLabel" class="subtle">0 shown</span>
-        <span class="subtle">Choose a sprite to load the activity</span>
+        <span id="modalHintLabel" class="subtle">Choose a sprite to load the activity</span>
       </div>
       <div id="activityGrid" class="activity-grid"></div>
     </section>
