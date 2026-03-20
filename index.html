@@ -10,6 +10,7 @@
   <div class="app-shell">
     <header class="site-header">
       <h1>OSRS Drop Simulator</h1>
+      <button id="openThemeButton" class="secondary-button theme-trigger" type="button">Change theme</button>
     </header>
 
     <main class="main-panel">
@@ -303,6 +304,89 @@
         <button id="closeComparisonLootModal" class="icon-button" type="button" aria-label="Close loot preview">×</button>
       </div>
       <div id="comparisonLootModalBody" class="comparison-loot-modal-body"></div>
+    </section>
+  </div>
+
+  <div id="themeModal" class="modal" hidden>
+    <div class="modal-backdrop" data-theme-modal-close></div>
+    <section class="modal-panel theme-modal-panel" role="dialog" aria-modal="true" aria-labelledby="themeModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Theme Editor</p>
+          <h2 id="themeModalTitle">Change theme</h2>
+        </div>
+        <button id="closeThemeModal" class="icon-button" type="button" aria-label="Close theme editor">×</button>
+      </div>
+      <p class="panel-note">Preview your colors live, then save the theme so it stays on this device.</p>
+      <div class="theme-editor">
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Page background</span>
+            <span class="theme-field-value" data-theme-value="bg">#0D1217</span>
+          </div>
+          <input id="themeBg" class="theme-color-input" type="color" value="#0d1217" data-theme-key="bg">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Workspace shell</span>
+            <span class="theme-field-value" data-theme-value="shell">#11181F</span>
+          </div>
+          <input id="themeShell" class="theme-color-input" type="color" value="#11181f" data-theme-key="shell">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Panel base</span>
+            <span class="theme-field-value" data-theme-value="panel">#131A21</span>
+          </div>
+          <input id="themePanel" class="theme-color-input" type="color" value="#131a21" data-theme-key="panel">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Panel surface</span>
+            <span class="theme-field-value" data-theme-value="panelSoft">#18212A</span>
+          </div>
+          <input id="themePanelSoft" class="theme-color-input" type="color" value="#18212a" data-theme-key="panelSoft">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Panel inset</span>
+            <span class="theme-field-value" data-theme-value="panelSoftest">#0F151C</span>
+          </div>
+          <input id="themePanelSoftest" class="theme-color-input" type="color" value="#0f151c" data-theme-key="panelSoftest">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Primary text</span>
+            <span class="theme-field-value" data-theme-value="text">#EDF2F7</span>
+          </div>
+          <input id="themeText" class="theme-color-input" type="color" value="#edf2f7" data-theme-key="text">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Muted text</span>
+            <span class="theme-field-value" data-theme-value="muted">#9EACBB</span>
+          </div>
+          <input id="themeMuted" class="theme-color-input" type="color" value="#9eacbb" data-theme-key="muted">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Accent</span>
+            <span class="theme-field-value" data-theme-value="accent">#D8BC72</span>
+          </div>
+          <input id="themeAccent" class="theme-color-input" type="color" value="#d8bc72" data-theme-key="accent">
+        </label>
+        <label class="theme-field">
+          <div class="theme-field-head">
+            <span class="field-label">Bright accent</span>
+            <span class="theme-field-value" data-theme-value="accentStrong">#F0DDB0</span>
+          </div>
+          <input id="themeAccentStrong" class="theme-color-input" type="color" value="#f0ddb0" data-theme-key="accentStrong">
+        </label>
+      </div>
+      <div class="theme-actions">
+        <button id="resetThemeButton" class="secondary-button" type="button">Reset defaults</button>
+        <button id="saveThemeButton" class="primary-button" type="button">Save theme</button>
+      </div>
     </section>
   </div>
   <script type="module" src="./app.js"></script>

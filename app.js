@@ -39,6 +39,7 @@ const GP_COMPARISON_SAMPLE_COUNT_HIGH_VALUE = 2;
 const GP_COMPARISON_SAMPLE_COUNT_ULTRA_VALUE = 1;
 const GP_COMPARISON_HIGH_VALUE_THRESHOLD = 250000000;
 const GP_COMPARISON_ULTRA_VALUE_THRESHOLD = 1000000000;
+const THEME_STORAGE_KEY = "osrs-drop-sim-theme-v1";
 const GP_MODE_EXCLUDED_SLUGS = new Set([
   "barrows-chests",
   "lunar-chests",
@@ -52,6 +53,30 @@ const GP_MODE_EXCLUDED_SLUGS = new Set([
 ]);
 const activityCache = new Map();
 let targetItemCatalogPromise = null;
+
+const DEFAULT_THEME = {
+  bg: "#0d1217",
+  shell: "#11181f",
+  panel: "#131a21",
+  panelSoft: "#18212a",
+  panelSoftest: "#0f151c",
+  text: "#edf2f7",
+  muted: "#9eacbb",
+  accent: "#d8bc72",
+  accentStrong: "#f0ddb0",
+};
+
+const THEME_CSS_VAR_MAP = {
+  bg: "--bg",
+  shell: "--shell",
+  panel: "--panel",
+  panelSoft: "--panel-soft",
+  panelSoftest: "--panel-softest",
+  text: "--text",
+  muted: "--muted",
+  accent: "--accent",
+  accentStrong: "--accent-strong",
+};
 
 const EXCLUDED_REFERENCE_SLUGS = new Set([
   "dark-journal",
@@ -105,9 +130,12 @@ const state = {
   paneView: "setup",
   lastResult: null,
   pickerMode: "activity",
+  savedTheme: { ...DEFAULT_THEME },
+  themeDraft: { ...DEFAULT_THEME },
 };
 
 const elements = {
+  openThemeButton: document.getElementById("openThemeButton"),
   activityPickerTrigger: document.getElementById("activityPickerTrigger"),
   activityModal: document.getElementById("activityModal"),
   activityModalTitle: document.getElementById("activityModalTitle"),
@@ -121,6 +149,10 @@ const elements = {
   comparisonLootModalTitle: document.getElementById("comparisonLootModalTitle"),
   comparisonLootModalBody: document.getElementById("comparisonLootModalBody"),
   closeComparisonLootModal: document.getElementById("closeComparisonLootModal"),
+  themeModal: document.getElementById("themeModal"),
+  closeThemeModal: document.getElementById("closeThemeModal"),
+  saveThemeButton: document.getElementById("saveThemeButton"),
+  resetThemeButton: document.getElementById("resetThemeButton"),
   activitySelectionBlock: document.getElementById("activitySelectionBlock"),
   activityDetailsBlock: document.getElementById("activityDetailsBlock"),
   activityMeta: document.getElementById("activityMeta"),
@@ -193,6 +225,8 @@ const elements = {
   tobMvpBonus: document.getElementById("tobMvpBonus"),
   tobTimedHmField: document.getElementById("tobTimedHmField"),
   tobTimedHm: document.getElementById("tobTimedHm"),
+  themeInputs: Array.from(document.querySelectorAll("[data-theme-key]")),
+  themeValueLabels: Array.from(document.querySelectorAll("[data-theme-value]")),
 };
 
 const RAID_TYPES = {
@@ -275,6 +309,88 @@ function formatShortValue(value) {
     return `${(value / 1000).toFixed(1)}k`;
   }
   return formatNumber(value);
+}
+
+function isValidHexColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(String(value || "").trim());
+}
+
+function hexToRgb(hex) {
+  const normalized = String(hex || "").replace("#", "");
+  return {
+    r: Number.parseInt(normalized.slice(0, 2), 16),
+    g: Number.parseInt(normalized.slice(2, 4), 16),
+    b: Number.parseInt(normalized.slice(4, 6), 16),
+  };
+}
+
+function toRgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function normalizeTheme(theme) {
+  const nextTheme = { ...DEFAULT_THEME };
+  Object.keys(DEFAULT_THEME).forEach((key) => {
+    if (isValidHexColor(theme?.[key])) {
+      nextTheme[key] = String(theme[key]).toLowerCase();
+    }
+  });
+  return nextTheme;
+}
+
+function applyTheme(theme) {
+  const normalizedTheme = normalizeTheme(theme);
+  const root = document.documentElement;
+  Object.entries(THEME_CSS_VAR_MAP).forEach(([key, cssVar]) => {
+    root.style.setProperty(cssVar, normalizedTheme[key]);
+  });
+  root.style.setProperty("--panel-border", toRgba(normalizedTheme.text, 0.08));
+  root.style.setProperty("--panel-border-strong", toRgba(normalizedTheme.accent, 0.34));
+  root.style.setProperty("--shadow", `0 14px 28px rgba(0, 0, 0, 0.22)`);
+}
+
+function saveTheme(theme) {
+  const normalizedTheme = normalizeTheme(theme);
+  window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(normalizedTheme));
+  state.savedTheme = { ...normalizedTheme };
+}
+
+function loadSavedTheme() {
+  try {
+    const raw = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (!raw) {
+      return { ...DEFAULT_THEME };
+    }
+    return normalizeTheme(JSON.parse(raw));
+  } catch (error) {
+    console.error(error);
+    return { ...DEFAULT_THEME };
+  }
+}
+
+function updateThemeValueLabels(theme) {
+  elements.themeValueLabels.forEach((label) => {
+    const key = label.dataset.themeValue;
+    label.textContent = String(theme?.[key] || DEFAULT_THEME[key] || "").toUpperCase();
+  });
+}
+
+function populateThemeInputs(theme) {
+  const normalizedTheme = normalizeTheme(theme);
+  elements.themeInputs.forEach((input) => {
+    const key = input.dataset.themeKey;
+    input.value = normalizedTheme[key];
+  });
+  updateThemeValueLabels(normalizedTheme);
+}
+
+function readThemeInputs() {
+  const theme = {};
+  elements.themeInputs.forEach((input) => {
+    theme[input.dataset.themeKey] = input.value;
+  });
+  return normalizeTheme(theme);
 }
 
 function clampRuns(value) {
@@ -685,13 +801,47 @@ function closeActivityModal() {
 }
 
 function syncModalState() {
-  const anyModalOpen = !elements.activityModal.hidden || !elements.comparisonLootModal.hidden;
+  const anyModalOpen = !elements.activityModal.hidden || !elements.comparisonLootModal.hidden || !elements.themeModal.hidden;
   document.body.classList.toggle("modal-open", anyModalOpen);
 }
 
 function closeComparisonLootModal() {
   elements.comparisonLootModal.hidden = true;
   syncModalState();
+}
+
+function openThemeModal() {
+  state.themeDraft = { ...state.savedTheme };
+  populateThemeInputs(state.themeDraft);
+  elements.themeModal.hidden = false;
+  syncModalState();
+  window.requestAnimationFrame(() => {
+    elements.themeInputs[0]?.focus();
+  });
+}
+
+function closeThemeModal(options = {}) {
+  const { revert = true } = options;
+  if (revert) {
+    applyTheme(state.savedTheme);
+    populateThemeInputs(state.savedTheme);
+    state.themeDraft = { ...state.savedTheme };
+  }
+  elements.themeModal.hidden = true;
+  syncModalState();
+}
+
+function saveThemeDraft() {
+  state.themeDraft = readThemeInputs();
+  applyTheme(state.themeDraft);
+  saveTheme(state.themeDraft);
+  closeThemeModal({ revert: false });
+}
+
+function resetThemeDraft() {
+  state.themeDraft = { ...DEFAULT_THEME };
+  populateThemeInputs(state.themeDraft);
+  applyTheme(state.themeDraft);
 }
 
 function getComparisonDetailMeta(entry, result) {
@@ -2306,6 +2456,7 @@ async function loadApp() {
   renderPlaceholderResults();
 }
 
+elements.openThemeButton.addEventListener("click", openThemeModal);
 elements.activityPickerTrigger.addEventListener("click", () => {
   void openActivityModal();
 });
@@ -2321,6 +2472,21 @@ elements.comparisonLootModal.addEventListener("click", (event) => {
     closeComparisonLootModal();
   }
 });
+elements.closeThemeModal.addEventListener("click", () => closeThemeModal());
+elements.themeModal.addEventListener("click", (event) => {
+  if (event.target.matches("[data-theme-modal-close]")) {
+    closeThemeModal();
+  }
+});
+elements.saveThemeButton.addEventListener("click", saveThemeDraft);
+elements.resetThemeButton.addEventListener("click", resetThemeDraft);
+elements.themeInputs.forEach((input) => {
+  input.addEventListener("input", () => {
+    state.themeDraft = readThemeInputs();
+    updateThemeValueLabels(state.themeDraft);
+    applyTheme(state.themeDraft);
+  });
+});
 
 elements.modalSearch.addEventListener("input", () => {
   void renderModalPicker();
@@ -2331,6 +2497,10 @@ elements.modalSupportedOnly.addEventListener("change", () => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (!elements.themeModal.hidden) {
+      closeThemeModal();
+      return;
+    }
     if (!elements.comparisonLootModal.hidden) {
       closeComparisonLootModal();
       return;
@@ -2477,6 +2647,10 @@ elements.simulationForm.addEventListener("submit", async (event) => {
   }
 });
 
+state.savedTheme = loadSavedTheme();
+state.themeDraft = { ...state.savedTheme };
+applyTheme(state.savedTheme);
+populateThemeInputs(state.savedTheme);
 setSimulationMode(state.simulationMode);
 setRunButtonState(false);
 showSetupStage();

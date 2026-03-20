@@ -2,6 +2,7 @@
 
 :root {
   --bg: #0d1217;
+  --shell: #11181f;
   --panel: #131a21;
   --panel-soft: #18212a;
   --panel-softest: #0f151c;
@@ -58,6 +59,10 @@ select {
 }
 
 .site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
@@ -146,7 +151,7 @@ select {
 }
 
 .simulator-pane {
-  background: #11181f;
+  background: var(--shell);
   height: 100%;
 }
 
@@ -635,6 +640,10 @@ label,
   color: var(--text);
 }
 
+.theme-trigger {
+  min-width: 126px;
+}
+
 .primary-button:disabled,
 .secondary-button:disabled {
   opacity: 0.46;
@@ -1059,6 +1068,12 @@ label,
   height: min(82vh, 760px);
 }
 
+.theme-modal-panel {
+  width: min(840px, calc(100vw - 24px));
+  height: auto;
+  max-height: min(88vh, 820px);
+}
+
 .modal-header,
 .picker-meta {
   display: flex;
@@ -1099,6 +1114,52 @@ label,
 
 .comparison-modal-hint {
   margin-top: -2px;
+}
+
+.theme-editor {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.theme-field {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(12, 18, 24, 0.76);
+}
+
+.theme-field-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.theme-field-value {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+}
+
+.theme-color-input {
+  width: 100%;
+  height: 40px;
+  padding: 4px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-softest);
+  cursor: pointer;
+}
+
+.theme-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .activity-grid {
@@ -1232,6 +1293,10 @@ body.modal-open {
     grid-template-columns: 1fr;
   }
 
+  .theme-editor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .compact-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1304,6 +1369,18 @@ body.modal-open {
   }
 
   .modal-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .site-header {
+    align-items: start;
+  }
+
+  .theme-trigger {
+    min-width: 0;
+  }
+
+  .theme-editor {
     grid-template-columns: 1fr;
   }
 
