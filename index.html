@@ -16,182 +16,192 @@
       <section id="simulationPanel" class="panel simulator-pane">
         <div class="workspace-shell">
           <form id="simulationForm" class="sim-form">
-            <div class="workspace-column control-column">
-              <section class="surface-card activity-card">
-                <div class="activity-strip">
-                  <div class="activity-art">
-                    <img id="activityImage" alt="" hidden>
-                    <div class="activity-art-fallback">?</div>
+            <div class="workspace-column single-pane-column">
+              <section class="surface-card workspace-pane-card">
+                <section id="setupStage" class="pane-stage setup-stage">
+                  <div class="mode-switch notebook-tabs" role="tablist" aria-label="Simulation mode">
+                    <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
+                    <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
+                    <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
                   </div>
-                  <div class="activity-copy">
-                    <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select item</button>
+
+                  <div class="review-card-header">
+                    <h3>Current setup</h3>
+                    <span class="subtle">Pick an encounter, adjust the run, then roll it.</span>
                   </div>
-                </div>
-                <div class="mode-switch" role="tablist" aria-label="Simulation mode">
-                  <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
-                  <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
-                  <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
-                </div>
-              </section>
-            </div>
 
-            <div class="workspace-column results-column">
-              <section class="surface-card run-summary-card">
-                <div class="review-card-header">
-                  <h3>Current setup</h3>
-                  <span class="subtle">Edit the run inputs here.</span>
-                </div>
-                <div id="activityMeta" class="meta-row"></div>
-                <div class="source-row">
-                  <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
-                </div>
-                <p id="activityNote" class="note" hidden></p>
-
-                <div class="form-grid primary-config-grid">
-                  <label id="variantField" hidden>
-                    <span class="field-label">Variant</span>
-                    <select id="variantSelect" class="text-input">
-                      <option value="">Default</option>
-                    </select>
-                  </label>
-                  <label id="killsField">
-                    <span class="field-label">Attempts</span>
-                    <input id="killsInput" class="text-input" type="number" min="1" max="25000000" value="100">
-                  </label>
-                  <label id="targetItemField" hidden>
-                    <span class="field-label">Target item</span>
-                    <select id="targetItem" class="text-input">
-                      <option value="">Select a target item</option>
-                    </select>
-                  </label>
-                  <label id="targetCountField" hidden>
-                    <span class="field-label">Target count</span>
-                    <input id="targetCount" class="text-input" type="number" min="1" value="1">
-                  </label>
-                  <label id="targetGpField" hidden>
-                    <span class="field-label">Target GP</span>
-                    <input id="targetGpValue" class="text-input" type="number" min="1" value="10000000" inputmode="numeric">
-                  </label>
-                </div>
-
-                <details id="encounterSettings" class="encounter-settings" hidden>
-                  <summary>Encounter settings</summary>
-                  <div id="clueControls" class="activity-controls" hidden>
-                    <div class="control-group">
-                      <p class="field-group-title">Clue settings</p>
-                      <div class="form-grid compact-grid">
-                        <label id="clueMimicEnabledField" class="toggle-field">
-                          <span class="field-label">Enable Mimic casket</span>
-                          <input id="clueMimicEnabled" type="checkbox" checked>
-                        </label>
-                        <label id="clueMimicAttemptsField">
-                          <span class="field-label">Mimic attempts used</span>
-                          <input id="clueMimicAttempts" class="text-input" type="number" min="1" max="6" value="1">
-                        </label>
-                      </div>
+                  <div class="activity-strip setup-activity-strip">
+                    <div class="activity-art">
+                      <img id="activityImage" alt="" hidden>
+                      <div class="activity-art-fallback">?</div>
+                    </div>
+                    <div class="activity-copy">
+                      <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select item</button>
                     </div>
                   </div>
 
-                  <div id="raidControls" class="activity-controls" hidden>
-                    <div id="coxControls" class="control-group" hidden>
-                      <p class="field-group-title">Chambers of Xeric</p>
-                      <div class="form-grid compact-grid">
-                        <label>
-                          <span class="field-label">Your points</span>
-                          <input id="coxPersonalPoints" class="text-input" type="number" min="0" value="30000">
-                        </label>
-                        <label>
-                          <span class="field-label">Team points</span>
-                          <input id="coxGroupPoints" class="text-input" type="number" min="0" value="60000">
-                        </label>
-                        <label id="coxTimedCmField" class="toggle-field" hidden>
-                          <span class="field-label">Timed CM clear</span>
-                          <input id="coxTimedCm" type="checkbox">
-                        </label>
-                        <label class="toggle-field">
-                          <span class="field-label">Elite CA clue rate</span>
-                          <input id="coxEliteCa" type="checkbox">
-                        </label>
-                      </div>
-                    </div>
-
-                    <div id="toaControls" class="control-group" hidden>
-                      <p class="field-group-title">Tombs of Amascut</p>
-                      <div class="form-grid compact-grid">
-                        <label>
-                          <span class="field-label">Raid level</span>
-                          <input id="toaRaidLevel" class="text-input" type="number" min="0" max="600" value="300">
-                        </label>
-                        <label>
-                          <span class="field-label">Your loot points</span>
-                          <input id="toaPersonalPoints" class="text-input" type="number" min="0" value="15000">
-                        </label>
-                        <label>
-                          <span class="field-label">Team loot points</span>
-                          <input id="toaTeamPoints" class="text-input" type="number" min="0" value="30000">
-                        </label>
-                        <label>
-                          <span class="field-label">Completions</span>
-                          <input id="toaCompletions" class="text-input" type="number" min="0" value="0">
-                        </label>
-                        <label class="toggle-field">
-                          <span class="field-label">Thread already owned</span>
-                          <input id="toaThreadObtained" type="checkbox">
-                        </label>
-                      </div>
-                    </div>
-
-                    <div id="tobControls" class="control-group" hidden>
-                      <p class="field-group-title">Theatre of Blood</p>
-                      <div class="form-grid compact-grid">
-                        <label>
-                          <span class="field-label">Team size</span>
-                          <input id="tobTeamSize" class="text-input" type="number" min="1" max="5" value="4">
-                        </label>
-                        <label>
-                          <span class="field-label">Your deaths</span>
-                          <input id="tobDeaths" class="text-input" type="number" min="0" value="0">
-                        </label>
-                        <label>
-                          <span class="field-label">Team deaths</span>
-                          <input id="tobTeamDeaths" class="text-input" type="number" min="0" value="0">
-                        </label>
-                        <label>
-                          <span class="field-label">Your skipped rooms</span>
-                          <input id="tobSkippedRooms" class="text-input" type="number" min="0" value="0">
-                        </label>
-                        <label>
-                          <span class="field-label">Team skipped rooms</span>
-                          <input id="tobTeamSkippedRooms" class="text-input" type="number" min="0" value="0">
-                        </label>
-                        <label>
-                          <span class="field-label">MVP points</span>
-                          <input id="tobMvpBonus" class="text-input" type="number" min="0" max="14" value="4">
-                        </label>
-                        <label id="tobTimedHmField" class="toggle-field" hidden>
-                          <span class="field-label">Timed HM clear</span>
-                          <input id="tobTimedHm" type="checkbox">
-                        </label>
-                      </div>
-                    </div>
+                  <div id="activityMeta" class="meta-row"></div>
+                  <div class="source-row">
+                    <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
                   </div>
-                </details>
+                  <p id="activityNote" class="note" hidden></p>
 
-                <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
-                <div id="runSummary" class="summary-grid"></div>
-                <div class="sim-nav single-action">
-                  <button id="simulateButton" class="primary-button run-button" type="submit">
-                    <span id="simulateButtonLabel">Run simulation</span>
-                  </button>
-                </div>
-              </section>
+                  <div class="form-grid primary-config-grid">
+                    <label id="variantField" hidden>
+                      <span class="field-label">Variant</span>
+                      <select id="variantSelect" class="text-input">
+                        <option value="">Default</option>
+                      </select>
+                    </label>
+                    <label id="killsField">
+                      <span class="field-label">Attempts</span>
+                      <input id="killsInput" class="text-input" type="number" min="1" max="25000000" value="100">
+                    </label>
+                    <label id="targetItemField" hidden>
+                      <span class="field-label">Target item</span>
+                      <select id="targetItem" class="text-input">
+                        <option value="">Select a target item</option>
+                      </select>
+                    </label>
+                    <label id="targetCountField" hidden>
+                      <span class="field-label">Target count</span>
+                      <input id="targetCount" class="text-input" type="number" min="1" value="1">
+                    </label>
+                    <label id="targetGpField" hidden>
+                      <span class="field-label">Target GP</span>
+                      <input id="targetGpValue" class="text-input" type="number" min="1" value="10000000" inputmode="numeric">
+                    </label>
+                  </div>
 
-              <section class="surface-card results-stage-card">
-                <div class="review-card-header">
-                  <h3>Simulation output</h3>
-                  <span class="subtle">Loot, value, highlights, and totals.</span>
-                </div>
-                <div id="simulationResults" class="results-empty">Run simulation to see the loot review.</div>
+                  <details id="encounterSettings" class="encounter-settings" hidden>
+                    <summary>Encounter settings</summary>
+                    <div id="clueControls" class="activity-controls" hidden>
+                      <div class="control-group">
+                        <p class="field-group-title">Clue settings</p>
+                        <div class="form-grid compact-grid">
+                          <label id="clueMimicEnabledField" class="toggle-field">
+                            <span class="field-label">Enable Mimic casket</span>
+                            <input id="clueMimicEnabled" type="checkbox" checked>
+                          </label>
+                          <label id="clueMimicAttemptsField">
+                            <span class="field-label">Mimic attempts used</span>
+                            <input id="clueMimicAttempts" class="text-input" type="number" min="1" max="6" value="1">
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div id="raidControls" class="activity-controls" hidden>
+                      <div id="coxControls" class="control-group" hidden>
+                        <p class="field-group-title">Chambers of Xeric</p>
+                        <div class="form-grid compact-grid">
+                          <label>
+                            <span class="field-label">Your points</span>
+                            <input id="coxPersonalPoints" class="text-input" type="number" min="0" value="30000">
+                          </label>
+                          <label>
+                            <span class="field-label">Team points</span>
+                            <input id="coxGroupPoints" class="text-input" type="number" min="0" value="60000">
+                          </label>
+                          <label id="coxTimedCmField" class="toggle-field" hidden>
+                            <span class="field-label">Timed CM clear</span>
+                            <input id="coxTimedCm" type="checkbox">
+                          </label>
+                          <label class="toggle-field">
+                            <span class="field-label">Elite CA clue rate</span>
+                            <input id="coxEliteCa" type="checkbox">
+                          </label>
+                        </div>
+                      </div>
+
+                      <div id="toaControls" class="control-group" hidden>
+                        <p class="field-group-title">Tombs of Amascut</p>
+                        <div class="form-grid compact-grid">
+                          <label>
+                            <span class="field-label">Raid level</span>
+                            <input id="toaRaidLevel" class="text-input" type="number" min="0" max="600" value="300">
+                          </label>
+                          <label>
+                            <span class="field-label">Your loot points</span>
+                            <input id="toaPersonalPoints" class="text-input" type="number" min="0" value="15000">
+                          </label>
+                          <label>
+                            <span class="field-label">Team loot points</span>
+                            <input id="toaTeamPoints" class="text-input" type="number" min="0" value="30000">
+                          </label>
+                          <label>
+                            <span class="field-label">Completions</span>
+                            <input id="toaCompletions" class="text-input" type="number" min="0" value="0">
+                          </label>
+                          <label class="toggle-field">
+                            <span class="field-label">Thread already owned</span>
+                            <input id="toaThreadObtained" type="checkbox">
+                          </label>
+                        </div>
+                      </div>
+
+                      <div id="tobControls" class="control-group" hidden>
+                        <p class="field-group-title">Theatre of Blood</p>
+                        <div class="form-grid compact-grid">
+                          <label>
+                            <span class="field-label">Team size</span>
+                            <input id="tobTeamSize" class="text-input" type="number" min="1" max="5" value="4">
+                          </label>
+                          <label>
+                            <span class="field-label">Your deaths</span>
+                            <input id="tobDeaths" class="text-input" type="number" min="0" value="0">
+                          </label>
+                          <label>
+                            <span class="field-label">Team deaths</span>
+                            <input id="tobTeamDeaths" class="text-input" type="number" min="0" value="0">
+                          </label>
+                          <label>
+                            <span class="field-label">Your skipped rooms</span>
+                            <input id="tobSkippedRooms" class="text-input" type="number" min="0" value="0">
+                          </label>
+                          <label>
+                            <span class="field-label">Team skipped rooms</span>
+                            <input id="tobTeamSkippedRooms" class="text-input" type="number" min="0" value="0">
+                          </label>
+                          <label>
+                            <span class="field-label">MVP points</span>
+                            <input id="tobMvpBonus" class="text-input" type="number" min="0" max="14" value="4">
+                          </label>
+                          <label id="tobTimedHmField" class="toggle-field" hidden>
+                            <span class="field-label">Timed HM clear</span>
+                            <input id="tobTimedHm" type="checkbox">
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </details>
+
+                  <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
+                  <div id="runSummary" class="summary-grid"></div>
+                  <div class="sim-nav single-action">
+                    <button id="simulateButton" class="primary-button run-button" type="submit">
+                      <span id="simulateButtonLabel">Run simulation</span>
+                    </button>
+                  </div>
+                </section>
+
+                <section id="resultsStage" class="pane-stage results-stage" hidden>
+                  <div class="review-card-header">
+                    <h3>Simulation output</h3>
+                    <span class="subtle">Review the result, then rerun or go back.</span>
+                  </div>
+
+                  <div id="resultActions" class="result-actions">
+                    <button id="runAgainButton" class="primary-button" type="button">Run again</button>
+                    <button id="goBackButton" class="secondary-button" type="button">Go back</button>
+                    <button id="screenshotButton" class="secondary-button" type="button">Screenshot</button>
+                  </div>
+
+                  <div id="resultsCapture" class="results-capture">
+                    <div id="resultsContext" class="results-context"></div>
+                    <div id="simulationResults" class="results-empty">Run simulation to see the loot review.</div>
+                  </div>
+                </section>
               </section>
             </div>
           </form>
@@ -224,7 +234,7 @@
       <div id="activityGrid" class="activity-grid"></div>
     </section>
   </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script type="module" src="./app.js"></script>
 </body>
 </html>

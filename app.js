@@ -95,6 +95,7 @@ const state = {
   selectedVariantId: null,
   activeResultsTab: "overview",
   simulationMode: "fixed",
+  paneView: "setup",
 };
 
 const elements = {
@@ -110,11 +111,19 @@ const elements = {
   sourceLink: document.getElementById("sourceLink"),
   activityImage: document.getElementById("activityImage"),
   simulationForm: document.getElementById("simulationForm"),
+  setupStage: document.getElementById("setupStage"),
+  resultsStage: document.getElementById("resultsStage"),
   runSummary: document.getElementById("runSummary"),
   simulateButton: document.getElementById("simulateButton"),
   simulateButtonLabel: document.getElementById("simulateButtonLabel"),
   simulationHelp: document.getElementById("simulationHelp"),
   simulationResults: document.getElementById("simulationResults"),
+  resultsContext: document.getElementById("resultsContext"),
+  resultsCapture: document.getElementById("resultsCapture"),
+  resultActions: document.getElementById("resultActions"),
+  runAgainButton: document.getElementById("runAgainButton"),
+  goBackButton: document.getElementById("goBackButton"),
+  screenshotButton: document.getElementById("screenshotButton"),
   modeFixedButton: document.getElementById("modeFixedButton"),
   modeTargetButton: document.getElementById("modeTargetButton"),
   modeGpButton: document.getElementById("modeGpButton"),
@@ -550,7 +559,90 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
   }
 }
 
+function showSetupStage() {
+  state.paneView = "setup";
+  elements.setupStage.hidden = false;
+  elements.resultsStage.hidden = true;
+}
+
+function showResultsStage(showActions = true) {
+  state.paneView = "results";
+  elements.setupStage.hidden = true;
+  elements.resultsStage.hidden = false;
+  elements.resultActions.hidden = !showActions;
+}
+
+function buildResultsContext(result = null) {
+  const activity = state.selectedActivity;
+  const isGpMode = result?.mode === "gp" || state.simulationMode === "gp";
+
+  if (isGpMode) {
+    const chips = [
+      result?.target_gp_value ? `${formatShortValue(result.target_gp_value)} gp target` : null,
+      result?.boss_count ? `${formatNumber(result.boss_count)} bosses ranked` : null,
+      result?.sample_count ? `${formatNumber(result.sample_count)} samples / boss` : null,
+    ]
+      .filter(Boolean)
+      .map((text) => `<span class="meta-chip">${escapeHtml(text)}</span>`)
+      .join("");
+
+    return `
+      <article class="results-context-card">
+        <span class="eyebrow">Result Scope</span>
+        <h4>GP target comparison</h4>
+        <div class="meta-row">${chips}</div>
+      </article>
+    `;
+  }
+
+  const image = activity?.activity_image_path
+    ? `<img src="${assetUrl(activity.activity_image_path)}" alt="${escapeHtml(activity.name)} artwork">`
+    : '<div class="results-context-fallback">?</div>';
+  const chips = [
+    state.simulationMode === "target" ? "Target chase" : "Attempts",
+    state.selectedVariantId ? (getActiveActivityView(activity)?.label || state.selectedVariantId) : null,
+  ]
+    .filter(Boolean)
+    .map((text) => `<span class="meta-chip">${escapeHtml(text)}</span>`)
+    .join("");
+
+  return `
+    <article class="results-context-card results-context-activity">
+      <div class="results-context-art">${image}</div>
+      <div class="results-context-copy">
+        <span class="eyebrow">Activity</span>
+        <h4>${escapeHtml(activity?.name || "Selected activity")}</h4>
+        <div class="meta-row">${chips}</div>
+      </div>
+    </article>
+  `;
+}
+
+async function downloadResultsScreenshot() {
+  if (!elements.resultsCapture) {
+    return;
+  }
+
+  if (typeof window.html2canvas !== "function") {
+    window.print();
+    return;
+  }
+
+  const canvas = await window.html2canvas(elements.resultsCapture, {
+    backgroundColor: "#0d1217",
+    scale: Math.max(2, Math.min(3, window.devicePixelRatio || 1)),
+    useCORS: true,
+  });
+  const link = document.createElement("a");
+  const baseName = state.simulationMode === "gp" ? "osrs-gp-comparison" : (state.selectedActivity?.slug || "osrs-drop-sim");
+  link.download = `${baseName}.png`;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
 function setSimulationLoading(message, detail = "Rolling rewards and assembling the final loot review.") {
+  showResultsStage(false);
+  elements.resultsContext.innerHTML = buildResultsContext();
   setRunButtonState(true);
   elements.simulationResults.classList.add("is-loading");
   elements.simulationResults.innerHTML = `
@@ -600,6 +692,7 @@ function setSimulationMode(mode) {
   elements.targetItemField.hidden = !isTargetMode;
   elements.targetCountField.hidden = !isTargetMode;
   elements.targetGpField.hidden = !isGpMode;
+  showSetupStage();
 
   if (state.selectedActivity) {
     refreshSelectedActivityView(false);
@@ -849,6 +942,7 @@ function renderRunSummary() {
 
 function renderPlaceholderResults(message = "Run a simulation to see the loot review.") {
   elements.simulationResults.classList.remove("is-loading");
+  elements.resultsContext.innerHTML = "";
   elements.simulationResults.innerHTML = `<div class="results-empty">${escapeHtml(message)}</div>`;
 }
 
@@ -862,6 +956,7 @@ function refreshSelectedActivityView(resetResults = false) {
   renderSimulationState(view);
   renderRunSummary();
   if (resetResults) {
+    showSetupStage();
     renderPlaceholderResults();
   }
 }
@@ -956,7 +1051,9 @@ function buildGpRankRow(entry, index, maxKillsForScale) {
 }
 
 function renderGpComparisonResults(result) {
+  showResultsStage(true);
   elements.simulationResults.classList.remove("is-loading");
+  elements.resultsContext.innerHTML = buildResultsContext(result);
   const rankings = result.rankings || [];
   const best = rankings[0] || null;
   const uncapped = rankings.filter((entry) => !entry.capped);
@@ -993,7 +1090,9 @@ function renderGpComparisonResults(result) {
 }
 
 function renderSimulationResults(result) {
+  showResultsStage(true);
   elements.simulationResults.classList.remove("is-loading");
+  elements.resultsContext.innerHTML = buildResultsContext(result);
   state.activeResultsTab = "overview";
 
   const averageValue = result.kills_completed ? Math.round((result.total_ge_value || 0) / result.kills_completed) : 0;
@@ -1258,9 +1357,7 @@ async function runGpComparison(targetGpValue) {
 async function selectActivity(slug) {
   state.selectedSlug = slug;
   renderActivityGrid();
-  if (window.scrollY > 120) {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+  showSetupStage();
   renderPlaceholderResults("Run simulation to see the loot review.");
 
   try {
@@ -1311,6 +1408,7 @@ document.addEventListener("keydown", (event) => {
 
 elements.variantSelect.addEventListener("change", () => {
   state.selectedVariantId = elements.variantSelect.value || null;
+  showSetupStage();
   refreshSelectedActivityView(true);
 });
 
@@ -1350,6 +1448,7 @@ elements.modeGpButton.addEventListener("click", () => {
       }
     }
     if (state.selectedActivity) {
+      showSetupStage();
       renderSimulationState(getActiveActivityView(state.selectedActivity));
     }
     renderRunSummary();
@@ -1362,6 +1461,22 @@ elements.simulationResults.addEventListener("click", (event) => {
     return;
   }
   setResultsTab(button.dataset.resultsTab);
+});
+
+elements.runAgainButton.addEventListener("click", () => {
+  elements.simulationForm.requestSubmit();
+});
+
+elements.goBackButton.addEventListener("click", () => {
+  showSetupStage();
+});
+
+elements.screenshotButton.addEventListener("click", async () => {
+  try {
+    await downloadResultsScreenshot();
+  } catch (error) {
+    console.error(error);
+  }
 });
 
 elements.simulationForm.addEventListener("submit", async (event) => {
@@ -1402,6 +1517,8 @@ elements.simulationForm.addEventListener("submit", async (event) => {
       renderSimulationResults(result);
     }
   } catch (error) {
+    showSetupStage();
+    elements.simulationHelp.textContent = error.message || "Simulation failed.";
     renderPlaceholderResults(error.message || "Simulation failed.");
   } finally {
     setRunButtonState(false);
@@ -1410,6 +1527,7 @@ elements.simulationForm.addEventListener("submit", async (event) => {
 
 setSimulationMode(state.simulationMode);
 setRunButtonState(false);
+showSetupStage();
 
 loadApp().catch((error) => {
   console.error(error);
