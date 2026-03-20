@@ -94,6 +94,7 @@ const state = {
   selectedActivity: null,
   selectedVariantId: null,
   activeResultsTab: "overview",
+  activeGpRankingSlug: null,
   simulationMode: null,
   paneView: "setup",
   lastResult: null,
@@ -1258,6 +1259,7 @@ function renderRunSummary() {
 
 function renderPlaceholderResults(message = "Run a simulation to see the loot review.") {
   state.lastResult = null;
+  state.activeGpRankingSlug = null;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = "";
   elements.simulationResults.innerHTML = `<div class="results-empty">${escapeHtml(message)}</div>`;
@@ -1350,7 +1352,78 @@ function buildSectionRows(result) {
   return Array.from(sections.values()).sort((a, b) => b.total_ge_value - a.total_ge_value || a.section.localeCompare(b.section));
 }
 
-function buildGpRankRow(entry, index, maxKillsForScale) {
+function buildGpPreviewTable(result) {
+  const rows = (result?.totals || [])
+    .map((item) => {
+      const image = item.item_asset_path ? `<img src="${assetUrl(item.item_asset_path)}" alt="">` : "";
+      return `
+        <tr>
+          <td>
+            <div class="table-item">
+              ${image}
+              <div>
+                <strong>${escapeHtml(item.item_name)}</strong>
+                <div class="table-cell subtle">${escapeHtml(item.section || "Loot")}</div>
+              </div>
+            </div>
+          </td>
+          <td>${formatNumber(item.quantity)}</td>
+          <td>${item.total_ge_value ? formatNumber(item.total_ge_value) : "N/A"}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Total GP</th>
+          </tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="3">No loot recorded.</td></tr>'}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function buildGpLootDetail(entry) {
+  if (!entry?.preview_result) {
+    return `
+      <div class="review-card">
+        <div class="review-card-header">
+          <h3>Boss loot preview</h3>
+          <span class="subtle">Click a boss in the ranking to inspect the simulated loot.</span>
+        </div>
+        <div class="results-empty">No representative loot sample is available for this boss.</div>
+      </div>
+    `;
+  }
+
+  const preview = entry.preview_result;
+  const averageValue = preview.kills_completed ? Math.round((preview.total_ge_value || 0) / preview.kills_completed) : 0;
+
+  return `
+    <div class="review-card gp-detail-card">
+      <div class="review-card-header">
+        <h3>${escapeHtml(entry.name)} loot preview</h3>
+        <span class="subtle">Representative sample from the median GP chase run for this boss</span>
+      </div>
+      <div class="metric-grid gp-detail-metrics">
+        ${buildMetricCard("KC to target", entry.capped ? `${formatNumber(MAX_SIM_CAP)}+` : formatNumber(entry.median_kills), true)}
+        ${buildMetricCard("Total value", `${formatShortValue(preview.total_ge_value || 0)} gp`)}
+        ${buildMetricCard("Value / kill", `${formatShortValue(averageValue)} gp`)}
+        ${buildMetricCard("Distinct items", formatNumber(preview.distinct_items || 0))}
+      </div>
+      ${buildGpPreviewTable(preview)}
+    </div>
+  `;
+}
+
+function buildGpRankRow(entry, index, maxKillsForScale, selectedSlug) {
   const image = entry.activity_image_path ? `<img src="${assetUrl(entry.activity_image_path)}" alt="">` : '<div class="gp-rank-sprite-fallback">?</div>';
   const fillPercent = entry.capped
     ? 100
@@ -1359,9 +1432,10 @@ function buildGpRankRow(entry, index, maxKillsForScale) {
   const rangeLabel = entry.min_kills === entry.max_kills
     ? `Sample ${formatNumber(entry.min_kills)}`
     : `Range ${formatNumber(entry.min_kills)}-${formatNumber(entry.max_kills)}`;
+  const isSelected = entry.slug === selectedSlug;
 
   return `
-    <article class="gp-rank-row${entry.capped ? " is-capped" : ""}">
+    <button class="gp-rank-row${entry.capped ? " is-capped" : ""}${isSelected ? " is-selected" : ""}" type="button" data-gp-slug="${escapeHtml(entry.slug)}">
       <div class="gp-rank-heading">
         <span class="gp-rank-position">${formatNumber(index + 1)}</span>
         <div class="gp-rank-sprite">${image}</div>
@@ -1374,7 +1448,7 @@ function buildGpRankRow(entry, index, maxKillsForScale) {
       <div class="gp-rank-bar">
         <span class="gp-rank-fill" style="width: ${fillPercent.toFixed(2)}%"></span>
       </div>
-    </article>
+    </button>
   `;
 }
 
@@ -1384,11 +1458,15 @@ function renderGpComparisonResults(result) {
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
   const rankings = result.rankings || [];
+  if (!rankings.some((entry) => entry.slug === state.activeGpRankingSlug)) {
+    state.activeGpRankingSlug = rankings[0]?.slug || null;
+  }
   const best = rankings[0] || null;
   const uncapped = rankings.filter((entry) => !entry.capped);
   const scaleMax = (uncapped.length ? uncapped[uncapped.length - 1].median_kills : (rankings.length ? rankings[rankings.length - 1].median_kills : 1)) || 1;
+  const selectedEntry = rankings.find((entry) => entry.slug === state.activeGpRankingSlug) || rankings[0] || null;
   const chartRows = rankings
-    .map((entry, index) => buildGpRankRow(entry, index, scaleMax))
+    .map((entry, index) => buildGpRankRow(entry, index, scaleMax, state.activeGpRankingSlug))
     .join("");
 
   elements.simulationResults.innerHTML = `
@@ -1414,6 +1492,8 @@ function renderGpComparisonResults(result) {
           ${chartRows || '<div class="results-empty">No eligible bosses were available for GP comparison.</div>'}
         </div>
       </div>
+
+      ${buildGpLootDetail(selectedEntry)}
     </div>
   `;
 }
@@ -1621,6 +1701,7 @@ function setResultsTab(tabId) {
 async function runGpComparison(targetGpValue) {
   const eligibleActivities = getGpEligibleActivities().sort((a, b) => a.name.localeCompare(b.name));
   const sampleCount = getGpComparisonSampleCount(targetGpValue);
+  const runSalt = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const rankings = [];
 
   for (let index = 0; index < eligibleActivities.length; index += 1) {
@@ -1640,24 +1721,30 @@ async function runGpComparison(targetGpValue) {
         kills: 1,
         target_gp_value: targetGpValue,
         max_chase_kills: MAX_SIM_CAP,
-        seed: `gp:${summary.slug}:${targetGpValue}:${sampleIndex}`,
+        seed: `gp:${runSalt}:${summary.slug}:${targetGpValue}:${sampleIndex}`,
       });
-      samples.push(result.kills_completed || 0);
+      samples.push({
+        kills: result.kills_completed || 0,
+        total_ge_value: result.total_ge_value || 0,
+        result,
+      });
       totalKills += result.kills_completed || 0;
       totalValue += result.total_ge_value || 0;
     }
 
-    samples.sort((a, b) => a - b);
-    const medianKills = samples[Math.floor(samples.length / 2)] || MAX_SIM_CAP;
+    samples.sort((a, b) => a.kills - b.kills || a.total_ge_value - b.total_ge_value);
+    const medianSample = samples[Math.floor(samples.length / 2)] || { kills: MAX_SIM_CAP, result: null };
+    const medianKills = medianSample.kills || MAX_SIM_CAP;
     rankings.push({
       slug: summary.slug,
       name: summary.name,
       activity_image_path: summary.activity_image_path || activity.activity_image_path || null,
       median_kills: medianKills,
-      min_kills: samples[0] || medianKills,
-      max_kills: samples[samples.length - 1] || medianKills,
+      min_kills: samples[0]?.kills || medianKills,
+      max_kills: samples[samples.length - 1]?.kills || medianKills,
       avg_gp_per_kill: totalKills > 0 ? Math.round(totalValue / totalKills) : 0,
       capped: medianKills >= MAX_SIM_CAP,
+      preview_result: medianSample.result,
     });
 
     if ((index + 1) % 4 === 0) {
@@ -1779,6 +1866,12 @@ elements.modeGpButton.addEventListener("click", () => {
 });
 
 elements.simulationResults.addEventListener("click", (event) => {
+  const gpButton = event.target.closest("[data-gp-slug]");
+  if (gpButton && state.lastResult?.mode === "gp") {
+    state.activeGpRankingSlug = gpButton.dataset.gpSlug;
+    renderGpComparisonResults(state.lastResult);
+    return;
+  }
   const button = event.target.closest("[data-results-tab]");
   if (!button) {
     return;
