@@ -1,20 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700&display=swap");
+
 :root {
   --bg: #0d1115;
-  --panel: #141b24;
-  --panel-strong: #10161d;
-  --panel-soft: #171f29;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(216, 188, 114, 0.3);
+  --panel: #151c24;
+  --panel-strong: #11181f;
+  --panel-soft: #1a222c;
+  --panel-softest: #0f151c;
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(216, 188, 114, 0.34);
   --text: #edf1f5;
   --muted: #9da9b8;
   --accent: #d8bc72;
   --accent-strong: #f0ddb0;
-  --shadow: 0 16px 32px rgba(0, 0, 0, 0.22);
-  --page-width: 900px;
-  --gap: 8px;
-  --pad: 10px;
-  --font-display: "Segoe UI Semibold", "Segoe UI", sans-serif;
-  --font-body: "Segoe UI", "Trebuchet MS", sans-serif;
+  --shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+  --page-width: 940px;
+  --gap: 10px;
+  --pad: 12px;
+  --font-display: "Cinzel", "Times New Roman", serif;
+  --font-body: "Inter", "Segoe UI", sans-serif;
 }
 
 * {
@@ -44,11 +47,11 @@ select {
 .app-shell {
   width: min(var(--page-width), calc(100% - 20px));
   margin: 0 auto;
-  padding: 8px 0 16px;
+  padding: 10px 0 18px;
 }
 
 .site-header {
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .site-header h1,
@@ -62,8 +65,10 @@ select {
 }
 
 .site-header h1 {
-  font-size: clamp(1.2rem, 2.4vw, 1.65rem);
+  color: var(--accent-strong);
+  font-size: clamp(1.34rem, 2.8vw, 1.95rem);
   line-height: 1;
+  letter-spacing: 0.04em;
 }
 
 .site-note,
@@ -134,20 +139,23 @@ select {
   grid-template-columns: 60px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: rgba(12, 17, 22, 0.82);
 }
 
 .activity-art {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.8);
+  background: var(--panel-softest);
 }
 
 .activity-art img {
-  max-width: 44px;
-  max-height: 44px;
+  max-width: 46px;
+  max-height: 46px;
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -178,7 +186,7 @@ select {
   color: var(--text);
   text-align: left;
   font-family: var(--font-display);
-  font-size: clamp(0.96rem, 1.7vw, 1.24rem);
+  font-size: clamp(1.02rem, 1.9vw, 1.36rem);
   line-height: 1;
   cursor: pointer;
   text-decoration: underline;
@@ -191,7 +199,7 @@ select {
 }
 
 .activity-picker-hint {
-  font-size: 0.74rem;
+  font-size: 0.78rem;
 }
 
 .meta-row,
@@ -210,11 +218,11 @@ select {
 .meta-chip {
   display: inline-flex;
   align-items: center;
-  padding: 5px 8px;
-  border: 1px solid rgba(216, 188, 114, 0.18);
-  background: rgba(9, 14, 18, 0.76);
+  padding: 4px 8px;
+  border: 1px solid rgba(216, 188, 114, 0.16);
+  background: rgba(15, 21, 28, 0.94);
   color: var(--text);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-family: var(--font-display);
@@ -241,20 +249,20 @@ select {
 }
 
 .review-card-header h3 {
-  font-size: 0.98rem;
+  font-size: 1.02rem;
 }
 
 .config-lead {
   display: grid;
   gap: 4px;
-  padding: 8px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
-  background: rgba(9, 14, 18, 0.82);
+  background: rgba(14, 20, 27, 0.88);
 }
 
 .config-lead strong {
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  font-size: 0.96rem;
 }
 
 .form-grid {
@@ -269,10 +277,10 @@ select {
 
 .text-input {
   width: 100%;
-  min-height: 34px;
-  padding: 6px 8px;
+  min-height: 36px;
+  padding: 7px 9px;
   border: 1px solid var(--border);
-  background: rgba(7, 11, 15, 0.92);
+  background: rgba(11, 16, 21, 0.96);
   color: var(--text);
 }
 
@@ -302,13 +310,27 @@ select {
 .control-group,
 .review-card,
 .review-note {
-  padding: 8px;
+  padding: 10px;
 }
 
 .run-summary-card,
 .results-stage-card {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+}
+
+.run-summary-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.run-summary-card .review-card-header,
+.run-summary-card .summary-grid {
+  grid-column: 1 / -1;
+}
+
+.run-summary-card .sim-nav {
+  grid-column: 2 / 3;
 }
 
 .field-group-title {
@@ -323,14 +345,18 @@ select {
 .mode-switch {
   display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
+  width: fit-content;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: rgba(12, 17, 22, 0.9);
 }
 
 .mode-button {
-  min-height: 32px;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.76);
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
   color: var(--muted);
   font-family: var(--font-display);
   font-size: 0.68rem;
@@ -340,9 +366,9 @@ select {
 }
 
 .mode-button.is-active {
-  border-color: var(--border-strong);
-  background: rgba(19, 25, 33, 0.94);
+  background: rgba(216, 188, 114, 0.14);
   color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
 }
 
 .toggle-field {
@@ -408,12 +434,12 @@ select {
 
 .single-action .run-button {
   width: 100%;
-  max-width: 260px;
+  max-width: 280px;
 }
 
 .encounter-settings {
   border: 1px solid var(--border);
-  background: rgba(9, 14, 18, 0.78);
+  background: rgba(12, 17, 22, 0.84);
 }
 
 .encounter-settings[hidden] {
@@ -422,7 +448,7 @@ select {
 
 .encounter-settings summary {
   cursor: pointer;
-  padding: 8px 10px;
+  padding: 9px 10px;
   color: var(--accent-strong);
   font-family: var(--font-display);
   font-size: 0.72rem;
@@ -442,8 +468,8 @@ select {
   position: relative;
   overflow: hidden;
   min-width: 210px;
-  min-height: 40px;
-  padding: 9px 16px;
+  min-height: 44px;
+  padding: 10px 16px;
   box-shadow: 0 0 0 0 rgba(216, 188, 114, 0.24);
   animation: run-button-breathe 2.2s ease-in-out infinite;
 }
@@ -487,12 +513,12 @@ select {
 .results-empty {
   padding: 14px;
   border: 1px dashed rgba(216, 188, 114, 0.22);
-  background: rgba(9, 13, 18, 0.48);
+  background: rgba(12, 17, 22, 0.72);
   color: var(--muted);
 }
 
 .summary-grid {
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
 }
 
 .summary-card,
@@ -500,19 +526,24 @@ select {
 .loot-card,
 .section-card,
 .notable-item {
-  padding: 10px;
+  padding: 9px 10px;
 }
 
 .summary-card strong,
 .metric-card strong,
 .section-card strong {
   display: block;
-  margin-top: 4px;
+  margin-top: 5px;
 }
 
 .summary-card strong,
 .metric-card strong {
-  font-size: 0.96rem;
+  font-size: 0.92rem;
+}
+
+.summary-card {
+  background: rgba(14, 20, 26, 0.84);
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 #simulationResults {
@@ -536,10 +567,11 @@ select {
 }
 
 .results-tab {
+  min-height: 30px;
   padding: 7px 9px;
-  border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.76);
-  color: var(--text);
+  border: 0;
+  background: transparent;
+  color: var(--muted);
   font-family: var(--font-display);
   font-size: 0.66rem;
   letter-spacing: 0.08em;
@@ -547,8 +579,16 @@ select {
 }
 
 .results-tab.is-active {
-  border-color: var(--border-strong);
+  background: rgba(216, 188, 114, 0.12);
   color: var(--accent-strong);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.results-tabs {
+  width: fit-content;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: rgba(12, 17, 22, 0.9);
 }
 
 .results-tab-panel[hidden] {
@@ -670,7 +710,7 @@ select {
   flex-direction: column;
   gap: 10px;
   padding: 12px;
-  background: rgba(14, 19, 25, 0.98);
+  background: rgba(15, 21, 28, 0.98);
   animation: modal-in 180ms ease;
 }
 
@@ -713,9 +753,9 @@ select {
   display: grid;
   align-content: start;
   gap: 5px;
-  padding: 5px;
+  padding: 6px;
   border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.74);
+  background: rgba(12, 17, 22, 0.88);
   color: var(--text);
   text-align: left;
   transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
@@ -724,8 +764,8 @@ select {
 
 .activity-tile:hover {
   transform: translateY(-1px);
-  border-color: rgba(216, 188, 114, 0.34);
-  background: rgba(13, 19, 25, 0.96);
+  border-color: rgba(216, 188, 114, 0.38);
+  background: rgba(17, 24, 31, 0.98);
 }
 
 .activity-tile.is-active {
@@ -756,7 +796,7 @@ select {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   min-height: 2.1em;
-  font-size: 0.63rem;
+  font-size: 0.66rem;
   line-height: 1.18;
 }
 
@@ -836,6 +876,14 @@ body.modal-open {
 
   .activity-grid {
     grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .run-summary-card {
+    grid-template-columns: 1fr;
+  }
+
+  .run-summary-card .sim-nav {
+    grid-column: 1 / -1;
   }
 }
 
