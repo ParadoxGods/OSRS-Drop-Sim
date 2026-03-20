@@ -3,29 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OSRS Drop Table Sim</title>
+  <title>OSRS Drop Simulator</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <h1>Drop Table Simulator</h1>
-      </div>
-    </aside>
+    <header class="site-header">
+      <p class="eyebrow">Old School RuneScape</p>
+      <h1>Drop Simulator</h1>
+      <p class="site-note">Bosses, raids, clue caskets, and Mimic rewards with wiki-backed loot models.</p>
+    </header>
 
     <main class="main-panel">
       <section class="hero-card">
         <div class="hero-copy">
-          <p class="eyebrow">Selected encounter</p>
+          <p class="eyebrow">Selected activity</p>
           <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select an activity</button>
-          <p class="activity-picker-hint">Click the encounter name to choose a different monster, boss, raid, or clue.</p>
+          <p class="activity-picker-hint">Click the activity name to switch bosses, raids, clue caskets, or Mimic tiers.</p>
           <div id="activityMeta" class="meta-row"></div>
-          <p id="activityNote" class="note"></p>
-          <div class="action-row">
-            <a id="wikiLink" class="link-pill" href="#" target="_blank" rel="noreferrer">Wiki page</a>
-            <a id="hiscoresLink" class="link-pill" href="#" target="_blank" rel="noreferrer">Hiscores</a>
-          </div>
+          <p id="activityNote" class="note" hidden></p>
         </div>
         <div class="hero-art">
           <img id="activityImage" alt="" hidden>
@@ -33,12 +29,12 @@
       </section>
 
       <div class="workspace">
-        <div class="workspace-primary">
+        <div class="control-column">
           <section id="simulationPanel" class="panel">
             <div class="panel-header">
               <div>
                 <p class="eyebrow">Simulation</p>
-                <h3>Run loot simulation</h3>
+                <h2>Configure run</h2>
               </div>
             </div>
             <form id="simulationForm" class="sim-form">
@@ -50,13 +46,13 @@
                   </select>
                 </label>
                 <label>
-                  <span class="field-label">Kills</span>
+                  <span class="field-label">Runs</span>
                   <input id="killsInput" class="text-input" type="number" min="1" value="100">
                 </label>
                 <label>
                   <span class="field-label">Target item</span>
                   <select id="targetItem" class="text-input">
-                    <option value="">Fixed-kill sim</option>
+                    <option value="">Fixed-run simulation</option>
                   </select>
                 </label>
                 <label>
@@ -64,100 +60,141 @@
                   <input id="targetCount" class="text-input" type="number" min="1" value="1">
                 </label>
               </div>
-              <div id="raidControls" class="raid-controls" hidden>
-                <div id="coxControls" class="raid-control-group" hidden>
+
+              <div id="clueControls" class="activity-controls" hidden>
+                <div class="control-group">
+                  <p class="field-group-title">Clue settings</p>
+                  <div class="form-grid">
+                    <label id="clueMimicEnabledField" class="toggle-field">
+                      <span class="field-label">Mimic enabled</span>
+                      <input id="clueMimicEnabled" type="checkbox" checked>
+                    </label>
+                    <label id="clueMimicAttemptsField">
+                      <span class="field-label">Mimic clear attempt</span>
+                      <input id="clueMimicAttempts" class="text-input" type="number" min="1" max="6" value="1">
+                    </label>
+                  </div>
+                  <p class="panel-note">Elite and master clues can branch into Mimic rewards. The attempt value controls Mimic quantity reduction.</p>
+                </div>
+              </div>
+
+              <div id="raidControls" class="activity-controls" hidden>
+                <div id="coxControls" class="control-group" hidden>
                   <p class="field-group-title">Chambers of Xeric</p>
-                  <p class="panel-note">Use points to model the group purple roll and your own share of it.</p>
                   <div class="form-grid">
                     <label>
                       <span class="field-label">Your points</span>
                       <input id="coxPersonalPoints" class="text-input" type="number" min="0" value="30000">
                     </label>
                     <label>
-                      <span class="field-label">Group points</span>
+                      <span class="field-label">Team points</span>
                       <input id="coxGroupPoints" class="text-input" type="number" min="0" value="60000">
                     </label>
+                    <label id="coxTimedCmField" class="toggle-field" hidden>
+                      <span class="field-label">Timed CM clear</span>
+                      <input id="coxTimedCm" type="checkbox">
+                    </label>
+                    <label class="toggle-field">
+                      <span class="field-label">Elite CA clue rate</span>
+                      <input id="coxEliteCa" type="checkbox">
+                    </label>
                   </div>
+                  <p class="panel-note">Purple rolls use team points. Your share of a unique is weighted by your own contribution.</p>
                 </div>
-                <div id="toaControls" class="raid-control-group" hidden>
+
+                <div id="toaControls" class="control-group" hidden>
                   <p class="field-group-title">Tombs of Amascut</p>
-                  <p class="panel-note">The unique roll scales from raid level and reward points after the 5,000 base is removed.</p>
                   <div class="form-grid">
                     <label>
                       <span class="field-label">Raid level</span>
                       <input id="toaRaidLevel" class="text-input" type="number" min="0" max="600" value="300">
                     </label>
                     <label>
-                      <span class="field-label">Your reward points</span>
+                      <span class="field-label">Your loot points</span>
                       <input id="toaPersonalPoints" class="text-input" type="number" min="0" value="15000">
                     </label>
                     <label>
-                      <span class="field-label">Team reward points</span>
-                      <input id="toaTeamPoints" class="text-input" type="number" min="0" value="15000">
+                      <span class="field-label">Team loot points</span>
+                      <input id="toaTeamPoints" class="text-input" type="number" min="0" value="30000">
+                    </label>
+                    <label>
+                      <span class="field-label">Completions</span>
+                      <input id="toaCompletions" class="text-input" type="number" min="0" value="0">
+                    </label>
+                    <label class="toggle-field">
+                      <span class="field-label">Thread already owned</span>
+                      <input id="toaThreadObtained" type="checkbox">
                     </label>
                   </div>
+                  <p class="panel-note">Use post-raid loot points after the base 5,000 is removed. Common rewards use three chest rolls when you miss a purple.</p>
                 </div>
-                <div id="tobControls" class="raid-control-group" hidden>
+
+                <div id="tobControls" class="control-group" hidden>
                   <p class="field-group-title">Theatre of Blood</p>
-                  <p class="panel-note">Deaths and skipped rooms reduce the purple chance before the unique table is rolled.</p>
                   <div class="form-grid">
                     <label>
-                      <span class="field-label">Deaths</span>
+                      <span class="field-label">Team size</span>
+                      <input id="tobTeamSize" class="text-input" type="number" min="1" max="5" value="4">
+                    </label>
+                    <label>
+                      <span class="field-label">Your deaths</span>
                       <input id="tobDeaths" class="text-input" type="number" min="0" value="0">
                     </label>
                     <label>
-                      <span class="field-label">Rooms skipped</span>
+                      <span class="field-label">Team deaths</span>
+                      <input id="tobTeamDeaths" class="text-input" type="number" min="0" value="0">
+                    </label>
+                    <label>
+                      <span class="field-label">Your skipped rooms</span>
                       <input id="tobSkippedRooms" class="text-input" type="number" min="0" value="0">
                     </label>
                     <label>
-                      <span class="field-label">MVP bonus</span>
+                      <span class="field-label">Team skipped rooms</span>
+                      <input id="tobTeamSkippedRooms" class="text-input" type="number" min="0" value="0">
+                    </label>
+                    <label>
+                      <span class="field-label">MVP points</span>
                       <input id="tobMvpBonus" class="text-input" type="number" min="0" max="14" value="4">
                     </label>
+                    <label id="tobTimedHmField" class="toggle-field" hidden>
+                      <span class="field-label">Timed HM clear</span>
+                      <input id="tobTimedHm" type="checkbox">
+                    </label>
                   </div>
+                  <p class="panel-note">Purple chance follows the OSRS Wiki ToB calculator model using your score, team score, deaths, skipped rooms, and MVP points.</p>
                 </div>
               </div>
-              <button id="simulateButton" class="primary-button" type="submit">Simulate</button>
-              <p id="simulationHelp" class="muted">Choose an activity to enable simulation.</p>
+
+              <button id="simulateButton" class="primary-button" type="submit">Run simulation</button>
+              <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
             </form>
           </section>
 
-          <section id="lootPanel" class="panel">
+          <section id="dropPanel" class="panel drop-panel">
             <div class="panel-header">
               <div>
-                <p class="eyebrow">Loot</p>
-                <h3>Simulation result</h3>
+                <p class="eyebrow">Reference</p>
+                <h2>Drop table</h2>
               </div>
             </div>
-            <div id="simulationResults" class="results-empty">No simulation run yet.</div>
+            <details id="dropTableToggle" class="drop-table-toggle">
+              <summary id="dropTableSummary" class="drop-table-summary">Open reference drop table</summary>
+              <div id="dropSections" class="drop-sections">
+                <div class="results-empty">No activity selected.</div>
+              </div>
+            </details>
           </section>
         </div>
 
-        <div class="workspace-secondary">
-          <section id="leaderboardPanel" class="panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Hiscores</p>
-                <h3>Cached leaderboard</h3>
-              </div>
-            </div>
-            <div id="leaderboard" class="leaderboard-empty">No activity selected.</div>
-          </section>
-
-          <section id="dropPanel" class="panel drop-panel">
+        <section id="lootPanel" class="panel results-panel">
           <div class="panel-header">
             <div>
-              <p class="eyebrow">Drop data</p>
-              <h3>Optional table</h3>
+              <p class="eyebrow">Loot review</p>
+              <h2>Simulation results</h2>
             </div>
           </div>
-          <details id="dropTableToggle" class="drop-table-toggle">
-            <summary id="dropTableSummary" class="drop-table-summary">Open cached drop table</summary>
-            <div id="dropSections" class="drop-sections">
-              <div class="results-empty">No activity selected.</div>
-            </div>
-          </details>
+          <div id="simulationResults" class="results-empty">No simulation run yet.</div>
         </section>
-        </div>
       </div>
     </main>
   </div>
@@ -173,15 +210,15 @@
         <button id="closeActivityPicker" class="icon-button" type="button" aria-label="Close activity picker">×</button>
       </div>
       <div class="modal-toolbar">
-        <input id="modalSearch" class="text-input" type="search" placeholder="Search by monster, raid, or clue">
-        <label class="checkbox">
+        <input id="modalSearch" class="text-input" type="search" placeholder="Search monsters, raids, clues, or Mimic">
+        <label class="toggle-field compact-toggle">
+          <span class="field-label">Sim-ready only</span>
           <input id="modalSupportedOnly" type="checkbox">
-          <span>Sim-ready only</span>
         </label>
       </div>
       <div class="picker-meta">
-        <span id="modalCountLabel" class="sidebar-count">0 loaded</span>
-        <span class="muted">Click a sprite to load the encounter</span>
+        <span id="modalCountLabel" class="subtle">0 shown</span>
+        <span class="subtle">Choose a sprite to load the activity</span>
       </div>
       <div id="activityGrid" class="activity-grid"></div>
     </section>
