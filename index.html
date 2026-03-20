@@ -21,6 +21,9 @@
           <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select an activity</button>
           <p class="activity-picker-hint">Click the activity name to switch bosses, raids, clue caskets, or Mimic tiers.</p>
           <div id="activityMeta" class="meta-row"></div>
+          <div class="source-row">
+            <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">Open OSRS Wiki source</a>
+          </div>
           <p id="activityNote" class="note" hidden></p>
         </div>
         <div class="hero-art">
@@ -29,15 +32,26 @@
       </section>
 
       <div class="workspace">
-        <div class="control-column">
-          <section id="simulationPanel" class="panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Simulation</p>
-                <h2>Configure run</h2>
-              </div>
+        <section id="simulationPanel" class="panel simulator-pane">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Simulator</p>
+              <h2>Configure, run, and review</h2>
             </div>
-            <form id="simulationForm" class="sim-form">
+          </div>
+
+          <div class="stepper" aria-label="Simulation steps">
+            <div class="step-pill is-active" data-step-label="configure">1. Configure</div>
+            <div class="step-pill" data-step-label="review">2. Run and review</div>
+          </div>
+
+          <form id="simulationForm" class="sim-form">
+            <div id="configurationStep" class="sim-step">
+              <div class="config-lead">
+                <strong>Set the run up first.</strong>
+                <span>Pick the activity variant, set the number of completions, choose an optional target, then click <span class="inline-key">Next</span>.</span>
+              </div>
+
               <div class="form-grid">
                 <label id="variantField" hidden>
                   <span class="field-label">Variant</span>
@@ -47,7 +61,7 @@
                 </label>
                 <label>
                   <span class="field-label">Runs</span>
-                  <input id="killsInput" class="text-input" type="number" min="1" value="100">
+                  <input id="killsInput" class="text-input" type="number" min="1" max="25000000" value="100">
                 </label>
                 <label>
                   <span class="field-label">Target item</span>
@@ -164,36 +178,34 @@
                   <p class="panel-note">Purple chance follows the OSRS Wiki ToB calculator model using your score, team score, deaths, skipped rooms, and MVP points.</p>
                 </div>
               </div>
+            </div>
 
-              <button id="simulateButton" class="primary-button" type="submit">Run simulation</button>
-              <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
-            </form>
-          </section>
+            <div id="reviewStep" class="sim-step" hidden>
+              <div class="review-card run-summary-card">
+                <div class="review-card-header">
+                  <h3>Run summary</h3>
+                  <span class="subtle">Final check before the simulator rolls.</span>
+                </div>
+                <div id="runSummary" class="summary-grid"></div>
+              </div>
 
-          <section id="dropPanel" class="panel drop-panel">
-            <div class="panel-header">
-              <div>
-                <p class="eyebrow">Reference</p>
-                <h2>Drop table</h2>
+              <div class="review-card results-stage-card">
+                <div class="review-card-header">
+                  <h3>Simulation output</h3>
+                  <span class="subtle">This pane will update after each run.</span>
+                </div>
+                <div id="simulationResults" class="results-empty">Run simulation to see the loot review.</div>
               </div>
             </div>
-            <details id="dropTableToggle" class="drop-table-toggle">
-              <summary id="dropTableSummary" class="drop-table-summary">Open reference drop table</summary>
-              <div id="dropSections" class="drop-sections">
-                <div class="results-empty">No activity selected.</div>
-              </div>
-            </details>
-          </section>
-        </div>
 
-        <section id="lootPanel" class="panel results-panel">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Loot review</p>
-              <h2>Simulation results</h2>
+            <div class="sim-nav">
+              <button id="backStepButton" class="secondary-button" type="button" hidden>Back</button>
+              <button id="nextStepButton" class="primary-button" type="button">Next</button>
+              <button id="simulateButton" class="primary-button" type="submit" hidden>Run simulation</button>
             </div>
-          </div>
-          <div id="simulationResults" class="results-empty">No simulation run yet.</div>
+
+            <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
+          </form>
         </section>
       </div>
     </main>

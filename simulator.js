@@ -495,7 +495,7 @@ function simulateMimicActivity(activityData, options, rng) {
   let totalGeValue = 0;
   let killsCompleted = 0;
   const fixedMode = !options.target_item_slug;
-  const limit = fixedMode ? Math.max(0, Number(options.kills) || 0) : Math.max(1, Number(options.max_chase_kills) || 250000);
+  const limit = fixedMode ? Math.max(0, Number(options.kills) || 0) : Math.max(1, Number(options.max_chase_kills) || 25000000);
   const attemptCount = getMimicAttemptCount(tier, options.clue_mimic_attempts ?? options.mimic_attempts);
 
   while (killsCompleted < limit) {
@@ -699,7 +699,7 @@ function simulateCoxRaid(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 250000) : Math.max(0, Number(options.kills) || 0);
+  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 25000000) : Math.max(0, Number(options.kills) || 0);
   const uniqueRows = getRowsFromSection(activityData, "Unique drop table");
   const mainRows = getRowsFromSection(activityData, "Main pool");
   const personalPoints = options.cox_personal_points ?? options.coxPersonalPoints ?? 30000;
@@ -779,7 +779,7 @@ function simulateToaRaid(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 250000) : Math.max(0, Number(options.kills) || 0);
+  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 25000000) : Math.max(0, Number(options.kills) || 0);
   const commonRows = getRowsFromSection(activityData, "Common rewards");
   const raidLevel = options.toa_raid_level ?? options.toaRaidLevel ?? 300;
   const personalPoints = options.toa_personal_points ?? options.toaPersonalPoints ?? 15000;
@@ -877,7 +877,7 @@ function simulateTobRaid(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 250000) : Math.max(0, Number(options.kills) || 0);
+  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 25000000) : Math.max(0, Number(options.kills) || 0);
   const uniqueRows = getRowsFromSection(activityData, String((activityData.simulation?.exclusive_sections || [])[0]?.label || "Normal mode"));
   const context = calculateTobContext(activityData, options);
   const commonRows = TOB_COMMON_TABLE;

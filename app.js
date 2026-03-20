@@ -32,6 +32,8 @@ const TOB_COMMON_ROWS = [
   { item_name: "Magic seed", item_slug: "magic-seed", item_asset_path: "assets/items/magic-seed.png", quantity_text: "3", rarity_fraction: "1/30", section: "Common rewards" },
 ];
 
+const MAX_SIM_CAP = 25000000;
+
 const EXCLUDED_REFERENCE_SLUGS = new Set([
   "dark-journal",
   "cursed-phalanx",
@@ -75,6 +77,7 @@ const state = {
   selectedActivity: null,
   selectedVariantId: null,
   activeResultsTab: "overview",
+  simulatorStep: "configure",
 };
 
 const elements = {
@@ -87,11 +90,14 @@ const elements = {
   modalCountLabel: document.getElementById("modalCountLabel"),
   activityMeta: document.getElementById("activityMeta"),
   activityNote: document.getElementById("activityNote"),
+  sourceLink: document.getElementById("sourceLink"),
   activityImage: document.getElementById("activityImage"),
-  dropTableToggle: document.getElementById("dropTableToggle"),
-  dropTableSummary: document.getElementById("dropTableSummary"),
-  dropSections: document.getElementById("dropSections"),
   simulationForm: document.getElementById("simulationForm"),
+  configurationStep: document.getElementById("configurationStep"),
+  reviewStep: document.getElementById("reviewStep"),
+  runSummary: document.getElementById("runSummary"),
+  nextStepButton: document.getElementById("nextStepButton"),
+  backStepButton: document.getElementById("backStepButton"),
   simulateButton: document.getElementById("simulateButton"),
   simulationHelp: document.getElementById("simulationHelp"),
   simulationResults: document.getElementById("simulationResults"),
@@ -171,6 +177,11 @@ function formatShortValue(value) {
     return `${(value / 1000).toFixed(1)}k`;
   }
   return formatNumber(value);
+}
+
+function clampRuns(value) {
+  const numeric = Math.floor(Number(value) || 0);
+  return Math.min(MAX_SIM_CAP, Math.max(1, numeric));
 }
 
 function assetUrl(path) {
@@ -404,6 +415,10 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
   elements.activityNote.textContent = noteParts.join(" ");
   elements.activityNote.hidden = !elements.activityNote.textContent;
 
+  const sourceHref = view?.wiki_url || activity.wiki_url || "#";
+  elements.sourceLink.href = sourceHref;
+  elements.sourceLink.hidden = !sourceHref || sourceHref === "#";
+
   if (activity.activity_image_path) {
     elements.activityImage.src = assetUrl(activity.activity_image_path);
     elements.activityImage.alt = `${activity.name} artwork`;
@@ -431,71 +446,6 @@ function setSimulationLoading(message) {
   `;
 }
 
-function renderDropSections(activity) {
-  const rows = getRenderableRows(activity);
-  const sections = Array.from(new Set(rows.map((row) => row.section)));
-  elements.dropTableSummary.textContent = rows.length
-    ? `Open reference drop table (${formatNumber(sections.length)} sections)`
-    : "No reference drop table available";
-
-  if (!rows.length) {
-    elements.dropSections.innerHTML = '<div class="results-empty">No reference drop rows available for this activity.</div>';
-    return;
-  }
-
-  const bySection = new Map();
-  rows.forEach((row) => {
-    if (!bySection.has(row.section)) {
-      bySection.set(row.section, []);
-    }
-    bySection.get(row.section).push(row);
-  });
-
-  elements.dropSections.innerHTML = "";
-  for (const [section, sectionRows] of bySection.entries()) {
-    const wrapper = document.createElement("section");
-    wrapper.className = "drop-section";
-    wrapper.innerHTML = `
-      <h3>${escapeHtml(section)}</h3>
-      <div class="table-scroll">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Qty</th>
-              <th>Rarity</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${sectionRows
-              .map((row) => {
-                const image = row.item_asset_path ? `<img src="${assetUrl(row.item_asset_path)}" alt="">` : "";
-                const rarity = row.rarity_fraction || row.rarity_percent || (DYNAMIC_VISIBLE_SLUGS.has(row.item_slug) ? "Dynamic" : "N/A");
-                return `
-                  <tr>
-                    <td>
-                      <div class="table-item">
-                        ${image}
-                        <div>
-                          <strong>${escapeHtml(row.item_name)}</strong>
-                          <div class="table-cell subtle">${escapeHtml(row.item_slug)}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>${escapeHtml(row.quantity_text || "1")}</td>
-                    <td>${escapeHtml(rarity)}</td>
-                  </tr>
-                `;
-              })
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-    elements.dropSections.appendChild(wrapper);
-  }
-}
-
 function renderTargetOptions(activity) {
   const options = ['<option value="">Fixed-run simulation</option>'];
   const selectedValue = elements.targetItem.value;
@@ -520,9 +470,12 @@ function renderSimulationState(activity) {
   const rollRange = activity.simulation?.reward_roll_range;
 
   elements.simulateButton.disabled = disabled;
+  elements.nextStepButton.disabled = disabled;
   elements.targetItem.disabled = disabled;
   elements.targetCount.disabled = disabled;
   elements.killsInput.disabled = disabled;
+  elements.killsInput.max = String(MAX_SIM_CAP);
+  elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
 
   elements.clueControls.hidden = !clueTier;
   elements.clueMimicEnabledField.hidden = rootSlug === "mimic";
@@ -544,7 +497,7 @@ function renderSimulationState(activity) {
   elements.coxTimedCmField.hidden = rootSlug !== "chambers-of-xeric-challenge-mode";
   elements.tobTimedHmField.hidden = rootSlug !== "theatre-of-blood-hard-mode";
 
-  let helpText = "Fixed-run mode rolls the selected number of completions. Choose a target item if you want the simulator to chase that drop instead.";
+  let helpText = `Fixed-run mode rolls the selected number of completions. Choose a target item if you want the simulator to chase that drop instead. Target runs stop at a cap of ${formatNumber(MAX_SIM_CAP)}.`;
   if (raidType === "cox") {
     helpText = "Purple chance is driven by total raid points, then assigned by personal point share. Common chests roll two distinct items when you miss a personal purple.";
   } else if (raidType === "toa") {
@@ -560,6 +513,132 @@ function renderSimulationState(activity) {
   elements.simulationHelp.textContent = disabled ? activity.note || "Simulation is not available for this activity." : helpText;
 }
 
+function setSimulatorStep(step) {
+  state.simulatorStep = step;
+  const configureStep = step === "configure";
+  elements.configurationStep.hidden = !configureStep;
+  elements.reviewStep.hidden = configureStep;
+  elements.backStepButton.hidden = configureStep;
+  elements.nextStepButton.hidden = !configureStep;
+  elements.simulateButton.hidden = configureStep;
+
+  document.querySelectorAll("[data-step-label]").forEach((label) => {
+    label.classList.toggle("is-active", label.dataset.stepLabel === step);
+  });
+}
+
+function buildSummaryCard(label, value) {
+  return `
+    <article class="summary-card">
+      <span class="field-label">${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </article>
+  `;
+}
+
+function collectSimulationPayloadAndOptions() {
+  if (!state.selectedActivity) {
+    return null;
+  }
+
+  const activityView = getActiveActivityView(state.selectedActivity);
+  const rootSlug = state.selectedActivity.slug;
+  const payload = {
+    ...activityView,
+    slug: rootSlug,
+    supported: activityView.supported ?? state.selectedActivity.supported,
+    simulation_disabled: activityView.simulation_disabled ?? state.selectedActivity.simulation_disabled,
+  };
+
+  if (state.selectedVariantId) {
+    payload.variant_id = state.selectedVariantId;
+  }
+
+  const options = {
+    kills: clampRuns(elements.killsInput.value || 1),
+    target_item_slug: elements.targetItem.value || null,
+    target_count: Number(elements.targetCount.value || 1),
+    max_chase_kills: MAX_SIM_CAP,
+  };
+
+  const clueTier = getEffectiveClueTier(rootSlug, activityView);
+  if (clueTier) {
+    options.clue_mimic_attempts = Number(elements.clueMimicAttempts.value || 1);
+    if (rootSlug !== "mimic") {
+      options.clue_mimic_enabled = elements.clueMimicEnabled.checked;
+    }
+  }
+
+  const raidType = getRaidType(rootSlug);
+  if (raidType === "cox") {
+    options.cox_personal_points = Number(elements.coxPersonalPoints.value || 0);
+    options.cox_group_points = Number(elements.coxGroupPoints.value || 0);
+    options.cox_timed_cm = elements.coxTimedCm.checked;
+    options.cox_elite_ca = elements.coxEliteCa.checked;
+  } else if (raidType === "toa") {
+    options.toa_raid_level = Number(elements.toaRaidLevel.value || 0);
+    options.toa_personal_points = Number(elements.toaPersonalPoints.value || 0);
+    options.toa_team_points = Number(elements.toaTeamPoints.value || 0);
+    options.toa_completions = Number(elements.toaCompletions.value || 0);
+    options.toa_thread_obtained = elements.toaThreadObtained.checked;
+  } else if (raidType === "tob") {
+    options.tob_team_size = Number(elements.tobTeamSize.value || 0);
+    options.tob_deaths = Number(elements.tobDeaths.value || 0);
+    options.tob_team_deaths = Number(elements.tobTeamDeaths.value || 0);
+    options.tob_skipped_rooms = Number(elements.tobSkippedRooms.value || 0);
+    options.tob_team_skipped_rooms = Number(elements.tobTeamSkippedRooms.value || 0);
+    options.tob_mvp_bonus = Number(elements.tobMvpBonus.value || 0);
+    options.tob_timed_hm = elements.tobTimedHm.checked;
+  }
+
+  return { activityView, rootSlug, payload, options };
+}
+
+function renderRunSummary() {
+  const data = collectSimulationPayloadAndOptions();
+  if (!data) {
+    elements.runSummary.innerHTML = "";
+    return;
+  }
+
+  const { activityView, rootSlug, options } = data;
+  const cards = [
+    buildSummaryCard("Activity", state.selectedActivity.name),
+    state.selectedVariantId ? buildSummaryCard("Variant", activityView.label || state.selectedVariantId) : "",
+    buildSummaryCard("Runs", formatNumber(options.kills)),
+    buildSummaryCard("Mode", options.target_item_slug ? "Target chase" : "Fixed-run"),
+    buildSummaryCard("Target", options.target_item_slug ? (elements.targetItem.selectedOptions[0]?.textContent || options.target_item_slug) : "None"),
+    buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)),
+  ];
+
+  if (options.target_item_slug) {
+    cards.push(buildSummaryCard("Target count", formatNumber(options.target_count)));
+  }
+
+  if (rootSlug === "mimic" || rootSlug === "clue-scrolls-elite" || rootSlug === "clue-scrolls-master") {
+    cards.push(buildSummaryCard("Mimic attempt", formatNumber(options.clue_mimic_attempts || 1)));
+    if (rootSlug !== "mimic") {
+      cards.push(buildSummaryCard("Mimic branch", options.clue_mimic_enabled ? "Enabled" : "Disabled"));
+    }
+  }
+
+  const raidType = getRaidType(rootSlug);
+  if (raidType === "cox") {
+    cards.push(buildSummaryCard("Your points", formatNumber(options.cox_personal_points)));
+    cards.push(buildSummaryCard("Team points", formatNumber(options.cox_group_points)));
+  } else if (raidType === "toa") {
+    cards.push(buildSummaryCard("Raid level", formatNumber(options.toa_raid_level)));
+    cards.push(buildSummaryCard("Your loot points", formatNumber(options.toa_personal_points)));
+    cards.push(buildSummaryCard("Team loot points", formatNumber(options.toa_team_points)));
+  } else if (raidType === "tob") {
+    cards.push(buildSummaryCard("Team size", formatNumber(options.tob_team_size)));
+    cards.push(buildSummaryCard("Your deaths", formatNumber(options.tob_deaths)));
+    cards.push(buildSummaryCard("Team deaths", formatNumber(options.tob_team_deaths)));
+  }
+
+  elements.runSummary.innerHTML = cards.filter(Boolean).join("");
+}
+
 function renderPlaceholderResults(message = "Run a simulation to see the loot review.") {
   elements.simulationResults.classList.remove("is-loading");
   elements.simulationResults.innerHTML = `<div class="results-empty">${escapeHtml(message)}</div>`;
@@ -571,9 +650,9 @@ function refreshSelectedActivityView(resetResults = false) {
   }
   const view = getActiveActivityView(state.selectedActivity);
   renderActivityHeader(state.selectedActivity, view);
-  renderDropSections(view);
   renderTargetOptions(view);
   renderSimulationState(view);
+  renderRunSummary();
   if (resetResults) {
     renderPlaceholderResults();
   }
@@ -840,11 +919,11 @@ function setResultsTab(tabId) {
 async function selectActivity(slug) {
   state.selectedSlug = slug;
   renderActivityGrid();
-  elements.dropTableToggle.open = false;
   if (window.scrollY > 120) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-  setSimulationLoading("Loading activity data...");
+  setSimulatorStep("configure");
+  renderPlaceholderResults("Run simulation to see the loot review.");
 
   try {
     const activity = await getJson(`./data/activities/${slug}.json`);
@@ -894,6 +973,37 @@ document.addEventListener("keydown", (event) => {
 elements.variantSelect.addEventListener("change", () => {
   state.selectedVariantId = elements.variantSelect.value || null;
   refreshSelectedActivityView(true);
+  setSimulatorStep("configure");
+});
+
+elements.nextStepButton.addEventListener("click", () => {
+  if (!state.selectedActivity) {
+    return;
+  }
+  elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
+  renderRunSummary();
+  setSimulatorStep("review");
+});
+
+elements.backStepButton.addEventListener("click", () => {
+  setSimulatorStep("configure");
+});
+
+["input", "change"].forEach((eventName) => {
+  elements.simulationForm.addEventListener(eventName, (event) => {
+    if (event.target === elements.nextStepButton || event.target === elements.backStepButton || event.target === elements.simulateButton) {
+      return;
+    }
+    if (event.target === elements.killsInput) {
+      const cleaned = clampRuns(elements.killsInput.value || 1);
+      if (String(cleaned) !== elements.killsInput.value && eventName === "change") {
+        elements.killsInput.value = String(cleaned);
+      }
+    }
+    if (state.simulatorStep === "review") {
+      renderRunSummary();
+    }
+  });
 });
 
 elements.simulationResults.addEventListener("click", (event) => {
@@ -906,58 +1016,15 @@ elements.simulationResults.addEventListener("click", (event) => {
 
 elements.simulationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!state.selectedActivity) {
+  if (!state.selectedActivity || state.simulatorStep !== "review") {
     return;
   }
 
-  const activityView = getActiveActivityView(state.selectedActivity);
-  const rootSlug = state.selectedActivity.slug;
-  const payload = {
-    ...activityView,
-    slug: rootSlug,
-    supported: activityView.supported ?? state.selectedActivity.supported,
-    simulation_disabled: activityView.simulation_disabled ?? state.selectedActivity.simulation_disabled,
-  };
-
-  if (state.selectedVariantId) {
-    payload.variant_id = state.selectedVariantId;
+  const data = collectSimulationPayloadAndOptions();
+  if (!data) {
+    return;
   }
-
-  const options = {
-    kills: Number(elements.killsInput.value || 0),
-    target_item_slug: elements.targetItem.value || null,
-    target_count: Number(elements.targetCount.value || 1),
-  };
-
-  const clueTier = getEffectiveClueTier(rootSlug, activityView);
-  if (clueTier) {
-    options.clue_mimic_attempts = Number(elements.clueMimicAttempts.value || 1);
-    if (rootSlug !== "mimic") {
-      options.clue_mimic_enabled = elements.clueMimicEnabled.checked;
-    }
-  }
-
-  const raidType = getRaidType(rootSlug);
-  if (raidType === "cox") {
-    options.cox_personal_points = Number(elements.coxPersonalPoints.value || 0);
-    options.cox_group_points = Number(elements.coxGroupPoints.value || 0);
-    options.cox_timed_cm = elements.coxTimedCm.checked;
-    options.cox_elite_ca = elements.coxEliteCa.checked;
-  } else if (raidType === "toa") {
-    options.toa_raid_level = Number(elements.toaRaidLevel.value || 0);
-    options.toa_personal_points = Number(elements.toaPersonalPoints.value || 0);
-    options.toa_team_points = Number(elements.toaTeamPoints.value || 0);
-    options.toa_completions = Number(elements.toaCompletions.value || 0);
-    options.toa_thread_obtained = elements.toaThreadObtained.checked;
-  } else if (raidType === "tob") {
-    options.tob_team_size = Number(elements.tobTeamSize.value || 0);
-    options.tob_deaths = Number(elements.tobDeaths.value || 0);
-    options.tob_team_deaths = Number(elements.tobTeamDeaths.value || 0);
-    options.tob_skipped_rooms = Number(elements.tobSkippedRooms.value || 0);
-    options.tob_team_skipped_rooms = Number(elements.tobTeamSkippedRooms.value || 0);
-    options.tob_mvp_bonus = Number(elements.tobMvpBonus.value || 0);
-    options.tob_timed_hm = elements.tobTimedHm.checked;
-  }
+  const { payload, options } = data;
 
   setSimulationLoading("Rolling loot...");
   await new Promise((resolve) => window.setTimeout(resolve, 220));

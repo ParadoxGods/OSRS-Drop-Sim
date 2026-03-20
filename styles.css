@@ -98,13 +98,14 @@ select {
 }
 
 .main-panel,
-.control-column,
 .results-shell,
-.drop-sections,
 .overview-grid,
 .loot-card-grid,
 .section-card-grid,
-.notable-list {
+.notable-list,
+.simulator-pane,
+.sim-step,
+.summary-grid {
   display: grid;
   gap: var(--gap);
 }
@@ -165,6 +166,12 @@ select {
   gap: 8px;
 }
 
+.source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .meta-chip {
   display: inline-flex;
   align-items: center;
@@ -176,6 +183,18 @@ select {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   font-family: var(--font-display);
+}
+
+.source-link {
+  color: var(--accent-strong);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(240, 221, 176, 0.36);
+  padding-bottom: 2px;
+}
+
+.source-link:hover {
+  color: var(--text);
+  border-bottom-color: rgba(240, 221, 176, 0.72);
 }
 
 .hero-art {
@@ -195,7 +214,7 @@ select {
 
 .workspace {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--gap);
   align-items: start;
 }
@@ -203,6 +222,10 @@ select {
 .panel {
   min-width: 0;
   padding: var(--pad);
+}
+
+.simulator-pane {
+  gap: 16px;
 }
 
 .panel-header,
@@ -227,6 +250,54 @@ select {
 .sim-form {
   display: grid;
   gap: 14px;
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.step-pill {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: rgba(8, 12, 16, 0.72);
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.step-pill.is-active {
+  border-color: var(--border-strong);
+  color: var(--accent-strong);
+}
+
+.config-lead {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  background: rgba(10, 15, 20, 0.82);
+}
+
+.config-lead strong {
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+}
+
+.inline-key {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  background: rgba(8, 12, 16, 0.8);
+  color: var(--accent-strong);
+  font-family: var(--font-display);
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .form-grid {
@@ -301,6 +372,7 @@ select {
 }
 
 .primary-button,
+.secondary-button,
 .icon-button,
 .results-tab,
 .activity-tile {
@@ -320,44 +392,22 @@ select {
   text-transform: uppercase;
 }
 
-.primary-button:disabled {
-  opacity: 0.46;
-  cursor: not-allowed;
-}
-
-.drop-table-toggle {
-  display: grid;
-  gap: 12px;
-}
-
-.drop-table-summary {
-  list-style: none;
-  padding: 11px 12px;
+.secondary-button {
+  width: fit-content;
+  min-height: 44px;
+  padding: 10px 16px;
   border: 1px solid var(--border);
-  background: rgba(8, 12, 16, 0.8);
+  background: rgba(8, 12, 16, 0.76);
+  color: var(--text);
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.drop-table-summary::-webkit-details-marker {
-  display: none;
-}
-
-.drop-table-summary::before {
-  content: "+";
-  display: inline-block;
-  margin-right: 10px;
-  color: var(--accent);
-}
-
-.drop-table-toggle[open] .drop-table-summary::before {
-  content: "-";
-}
-
-.results-panel {
-  min-height: 640px;
+.primary-button:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
 }
 
 .results-empty {
@@ -365,6 +415,43 @@ select {
   border: 1px dashed rgba(216, 188, 114, 0.22);
   background: rgba(9, 13, 18, 0.48);
   color: var(--muted);
+}
+
+.run-summary-card,
+.results-stage-card {
+  display: grid;
+  gap: 14px;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.summary-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: rgba(10, 15, 20, 0.78);
+}
+
+.summary-card strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 1rem;
+}
+
+.sim-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.sim-nav .primary-button:last-child {
+  margin-left: auto;
+}
+
+#simulationResults {
+  min-height: 260px;
 }
 
 .metric-grid {
@@ -696,14 +783,9 @@ body.modal-open {
 }
 
 @media (max-width: 1180px) {
-  .workspace,
   .hero-card,
   .overview-grid {
     grid-template-columns: 1fr;
-  }
-
-  .results-panel {
-    min-height: 0;
   }
 
   .activity-grid {
