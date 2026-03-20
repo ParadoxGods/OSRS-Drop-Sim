@@ -64,6 +64,58 @@
                   <input id="targetCount" class="text-input" type="number" min="1" value="1">
                 </label>
               </div>
+              <div id="raidControls" class="raid-controls" hidden>
+                <div id="coxControls" class="raid-control-group" hidden>
+                  <p class="field-group-title">Chambers of Xeric</p>
+                  <p class="panel-note">Use points to model the group purple roll and your own share of it.</p>
+                  <div class="form-grid">
+                    <label>
+                      <span class="field-label">Your points</span>
+                      <input id="coxPersonalPoints" class="text-input" type="number" min="0" value="30000">
+                    </label>
+                    <label>
+                      <span class="field-label">Group points</span>
+                      <input id="coxGroupPoints" class="text-input" type="number" min="0" value="60000">
+                    </label>
+                  </div>
+                </div>
+                <div id="toaControls" class="raid-control-group" hidden>
+                  <p class="field-group-title">Tombs of Amascut</p>
+                  <p class="panel-note">The unique roll scales from raid level and reward points after the 5,000 base is removed.</p>
+                  <div class="form-grid">
+                    <label>
+                      <span class="field-label">Raid level</span>
+                      <input id="toaRaidLevel" class="text-input" type="number" min="0" max="600" value="300">
+                    </label>
+                    <label>
+                      <span class="field-label">Your reward points</span>
+                      <input id="toaPersonalPoints" class="text-input" type="number" min="0" value="15000">
+                    </label>
+                    <label>
+                      <span class="field-label">Team reward points</span>
+                      <input id="toaTeamPoints" class="text-input" type="number" min="0" value="15000">
+                    </label>
+                  </div>
+                </div>
+                <div id="tobControls" class="raid-control-group" hidden>
+                  <p class="field-group-title">Theatre of Blood</p>
+                  <p class="panel-note">Deaths and skipped rooms reduce the purple chance before the unique table is rolled.</p>
+                  <div class="form-grid">
+                    <label>
+                      <span class="field-label">Deaths</span>
+                      <input id="tobDeaths" class="text-input" type="number" min="0" value="0">
+                    </label>
+                    <label>
+                      <span class="field-label">Rooms skipped</span>
+                      <input id="tobSkippedRooms" class="text-input" type="number" min="0" value="0">
+                    </label>
+                    <label>
+                      <span class="field-label">MVP bonus</span>
+                      <input id="tobMvpBonus" class="text-input" type="number" min="0" max="14" value="4">
+                    </label>
+                  </div>
+                </div>
+              </div>
               <button id="simulateButton" class="primary-button" type="submit">Simulate</button>
               <p id="simulationHelp" class="muted">Choose an activity to enable simulation.</p>
             </form>

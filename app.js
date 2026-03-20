@@ -35,7 +35,57 @@ const elements = {
   killsInput: document.getElementById("killsInput"),
   targetItem: document.getElementById("targetItem"),
   targetCount: document.getElementById("targetCount"),
+  raidControls: document.getElementById("raidControls"),
+  coxControls: document.getElementById("coxControls"),
+  toaControls: document.getElementById("toaControls"),
+  tobControls: document.getElementById("tobControls"),
+  coxPersonalPoints: document.getElementById("coxPersonalPoints"),
+  coxGroupPoints: document.getElementById("coxGroupPoints"),
+  toaRaidLevel: document.getElementById("toaRaidLevel"),
+  toaPersonalPoints: document.getElementById("toaPersonalPoints"),
+  toaTeamPoints: document.getElementById("toaTeamPoints"),
+  tobDeaths: document.getElementById("tobDeaths"),
+  tobSkippedRooms: document.getElementById("tobSkippedRooms"),
+  tobMvpBonus: document.getElementById("tobMvpBonus"),
 };
+
+const RAID_TYPES = {
+  cox: new Set(["chambers-of-xeric", "chambers-of-xeric-challenge-mode"]),
+  toa: new Set(["tombs-of-amascut", "tombs-of-amascut-expert-mode"]),
+  tob: new Set(["theatre-of-blood", "theatre-of-blood-hard-mode"]),
+};
+
+const TOB_COMMON_ROWS = [
+  { item_name: "Vial of blood", item_slug: "vial-of-blood", item_asset_path: null, quantity_text: "45–60 (noted)", rarity_fraction: "2/30" },
+  { item_name: "Death rune", item_slug: "death-rune", item_asset_path: "assets/items/death-rune.png", quantity_text: "500–600", rarity_fraction: "1/30" },
+  { item_name: "Blood rune", item_slug: "blood-rune", item_asset_path: "assets/items/blood-rune.png", quantity_text: "500–600", rarity_fraction: "1/30" },
+  { item_name: "Swamp tar", item_slug: "swamp-tar", item_asset_path: "assets/items/swamp-tar.png", quantity_text: "500–600", rarity_fraction: "1/30" },
+  { item_name: "Coal", item_slug: "coal", item_asset_path: "assets/items/coal.png", quantity_text: "500–600 (noted)", rarity_fraction: "1/30" },
+  { item_name: "Gold ore", item_slug: "gold-ore", item_asset_path: "assets/items/gold-ore.png", quantity_text: "300–360 (noted)", rarity_fraction: "1/30" },
+  { item_name: "Molten glass", item_slug: "molten-glass", item_asset_path: "assets/items/molten-glass.png", quantity_text: "200–240 (noted)", rarity_fraction: "1/30" },
+  { item_name: "Adamantite ore", item_slug: "adamantite-ore", item_asset_path: "assets/items/adamantite-ore.png", quantity_text: "130–156 (noted)", rarity_fraction: "1/30" },
+  { item_name: "Runite ore", item_slug: "runite-ore", item_asset_path: "assets/items/runite-ore.png", quantity_text: "60–72 (noted)", rarity_fraction: "1/30" },
+  { item_name: "Wine of zamorak", item_slug: "wine-of-zamorak", item_asset_path: "assets/items/wine-of-zamorak.png", quantity_text: "50–60", rarity_fraction: "1/30" },
+  { item_name: "Potato cactus", item_slug: "potato-cactus", item_asset_path: "assets/items/potato-cactus.png", quantity_text: "50–60", rarity_fraction: "1/30" },
+  { item_name: "Grimy cadantine", item_slug: "grimy-cadantine", item_asset_path: "assets/items/grimy-cadantine.png", quantity_text: "50–60", rarity_fraction: "1/30" },
+  { item_name: "Grimy avantoe", item_slug: "grimy-avantoe", item_asset_path: "assets/items/grimy-avantoe.png", quantity_text: "40–48", rarity_fraction: "1/30" },
+  { item_name: "Grimy toadflax", item_slug: "grimy-toadflax", item_asset_path: "assets/items/grimy-toadflax.png", quantity_text: "37–44", rarity_fraction: "1/30" },
+  { item_name: "Grimy kwuarm", item_slug: "grimy-kwuarm", item_asset_path: "assets/items/grimy-kwuarm.png", quantity_text: "36–43", rarity_fraction: "1/30" },
+  { item_name: "Grimy irit leaf", item_slug: "grimy-irit-leaf", item_asset_path: "assets/items/grimy-irit-leaf.png", quantity_text: "34–40", rarity_fraction: "1/30" },
+  { item_name: "Grimy ranarr weed", item_slug: "grimy-ranarr-weed", item_asset_path: "assets/items/grimy-ranarr-weed.png", quantity_text: "30–36", rarity_fraction: "1/30" },
+  { item_name: "Grimy snapdragon", item_slug: "grimy-snapdragon", item_asset_path: "assets/items/grimy-snapdragon.png", quantity_text: "27–32", rarity_fraction: "1/30" },
+  { item_name: "Grimy lantadyme", item_slug: "grimy-lantadyme", item_asset_path: "assets/items/grimy-lantadyme.png", quantity_text: "26–31", rarity_fraction: "1/30" },
+  { item_name: "Grimy dwarf weed", item_slug: "grimy-dwarf-weed", item_asset_path: "assets/items/grimy-dwarf-weed.png", quantity_text: "24–28", rarity_fraction: "1/30" },
+  { item_name: "Grimy torstol", item_slug: "grimy-torstol", item_asset_path: "assets/items/grimy-torstol.png", quantity_text: "20–24", rarity_fraction: "1/30" },
+  { item_name: "Battlestaff", item_slug: "battlestaff", item_asset_path: "assets/items/battlestaff.png", quantity_text: "15–18", rarity_fraction: "1/30" },
+  { item_name: "Rune battleaxe", item_slug: "rune-battleaxe", item_asset_path: "assets/items/rune-battleaxe.png", quantity_text: "1", rarity_fraction: "1/30" },
+  { item_name: "Rune platebody", item_slug: "rune-platebody", item_asset_path: "assets/items/rune-platebody.png", quantity_text: "1", rarity_fraction: "1/30" },
+  { item_name: "Rune chainbody", item_slug: "rune-chainbody", item_asset_path: "assets/items/rune-chainbody.png", quantity_text: "1", rarity_fraction: "1/30" },
+  { item_name: "Palm tree seed", item_slug: "palm-tree-seed", item_asset_path: "assets/items/palm-tree-seed.png", quantity_text: "1", rarity_fraction: "1/30" },
+  { item_name: "Yew seed", item_slug: "yew-seed", item_asset_path: "assets/items/yew-seed.png", quantity_text: "1", rarity_fraction: "1/30" },
+  { item_name: "Magic seed", item_slug: "magic-seed", item_asset_path: "assets/items/magic-seed.png", quantity_text: "1", rarity_fraction: "1/30" },
+  { item_name: "Mahogany seed", item_slug: "mahogany-seed", item_asset_path: "assets/items/mahogany-seed.png", quantity_text: "1", rarity_fraction: "1/30" },
+];
 
 function formatNumber(value) {
   if (value === null || value === undefined || Number.isNaN(value)) {
@@ -44,11 +94,25 @@ function formatNumber(value) {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+function formatPercent(value, digits = 1) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "N/A";
+  }
+  return `${(Number(value) * 100).toFixed(digits)}%`;
+}
+
 function assetUrl(path) {
   if (!path) {
     return "";
   }
   return `./${path.replace(/^\/+/, "")}`;
+}
+
+function getRaidType(slug) {
+  if (RAID_TYPES.cox.has(slug)) return "cox";
+  if (RAID_TYPES.toa.has(slug)) return "toa";
+  if (RAID_TYPES.tob.has(slug)) return "tob";
+  return null;
 }
 
 function matchesActivityFilter(activity, query) {
@@ -284,17 +348,20 @@ function renderLeaderboard(activity) {
 
 function renderDropSections(activity) {
   const rows = activity.drop_rows || [];
-  const sectionNames = Array.from(new Set(rows.map((row) => row.section)));
-  elements.dropTableSummary.textContent = rows.length
-    ? `Open cached drop table (${formatNumber(rows.length)} rows across ${formatNumber(sectionNames.length)} sections)`
+  const raidType = getRaidType(activity.slug);
+  const syntheticRows = raidType === "tob" && !rows.some((row) => row.section === "Common rewards") ? TOB_COMMON_ROWS : [];
+  const allRows = rows.concat(syntheticRows);
+  const sectionNames = Array.from(new Set(allRows.map((row) => row.section)));
+  elements.dropTableSummary.textContent = allRows.length
+    ? `Open cached drop table (${formatNumber(allRows.length)} rows across ${formatNumber(sectionNames.length)} sections)`
     : "No cached drop table available";
-  if (!rows.length) {
+  if (!allRows.length) {
     elements.dropSections.innerHTML = '<div class="results-empty">No cached drop rows for this activity yet.</div>';
     return;
   }
 
   const bySection = new Map();
-  rows.forEach((row) => {
+  allRows.forEach((row) => {
     if (!bySection.has(row.section)) {
       bySection.set(row.section, []);
     }
@@ -356,6 +423,13 @@ function renderTargetOptions(activity) {
       items.set(row.item_slug, row.item_name);
     }
   });
+  if (getRaidType(activity.slug) === "tob") {
+    TOB_COMMON_ROWS.forEach((row) => {
+      if (!items.has(row.item_slug)) {
+        items.set(row.item_slug, row.item_name);
+      }
+    });
+  }
   const options = ['<option value="">Fixed-kill sim</option>'];
   Array.from(items.entries())
     .sort((a, b) => a[1].localeCompare(b[1]))
@@ -371,11 +445,26 @@ function renderSimulationState(activity) {
   elements.targetItem.disabled = disabled;
   elements.targetCount.disabled = disabled;
   elements.killsInput.disabled = disabled;
+  const raidType = getRaidType(activity.slug);
+  elements.raidControls.hidden = !raidType;
+  elements.coxControls.hidden = raidType !== "cox";
+  elements.toaControls.hidden = raidType !== "toa";
+  elements.tobControls.hidden = raidType !== "tob";
+
   const rollRange = activity.simulation?.reward_roll_range;
-  const rollText = rollRange ? ` This activity rolls ${rollRange.min}-${rollRange.max} reward slots per casket.` : "";
+  let extraText = "";
+  if (raidType === "cox") {
+    extraText = " Use the raid settings below to control the purple roll and your share of the loot.";
+  } else if (raidType === "toa") {
+    extraText = " Use the raid settings below to set raid level and reward points for the chest roll.";
+  } else if (raidType === "tob") {
+    extraText = " Use the raid settings below to model deaths, skips, and the purple chance.";
+  } else if (rollRange) {
+    extraText = ` This activity rolls ${rollRange.min}-${rollRange.max} reward slots per casket.`;
+  }
   elements.simulationHelp.textContent = disabled
     ? activity.note || "Simulation is not available for this activity."
-    : `Fixed-kill mode runs the entered number of kills. Select a target item to chase it instead.${rollText}`;
+    : `Fixed-kill mode runs the entered number of kills. Select a target item to chase it instead.${extraText}`;
 }
 
 function refreshSelectedActivityView(resetResults = false) {
@@ -453,6 +542,19 @@ function renderSimulationResults(result) {
           <strong>${result.mode === "target" ? "Target" : "Fixed"}</strong>
         </div>
       </div>
+
+      ${
+        result.raid_model
+          ? `<div class="badge-row">
+              <span class="badge">Raid model: ${result.raid_model.toUpperCase()}</span>
+              ${
+                result.raid_context?.unique_chance !== undefined
+                  ? `<span class="badge">Unique chance: ${formatPercent(result.raid_context.unique_chance, 2)}</span>`
+                  : ""
+              }
+            </div>`
+          : ""
+      }
 
       ${
         result.mode === "target"
@@ -570,6 +672,20 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     payload.target_count = Number(elements.targetCount.value || 1);
   }
 
+  const raidType = getRaidType(state.selectedActivity.slug);
+  if (raidType === "cox") {
+    payload.cox_personal_points = Number(elements.coxPersonalPoints.value || 0);
+    payload.cox_group_points = Number(elements.coxGroupPoints.value || 0);
+  } else if (raidType === "toa") {
+    payload.toa_raid_level = Number(elements.toaRaidLevel.value || 0);
+    payload.toa_personal_points = Number(elements.toaPersonalPoints.value || 0);
+    payload.toa_team_points = Number(elements.toaTeamPoints.value || 0);
+  } else if (raidType === "tob") {
+    payload.tob_deaths = Number(elements.tobDeaths.value || 0);
+    payload.tob_skipped_rooms = Number(elements.tobSkippedRooms.value || 0);
+    payload.tob_mvp_bonus = Number(elements.tobMvpBonus.value || 0);
+  }
+
   setSimulationLoading("Rolling loot...");
   await new Promise((resolve) => window.setTimeout(resolve, 220));
   try {
@@ -578,6 +694,14 @@ elements.simulationForm.addEventListener("submit", async (event) => {
       seed: payload.seed,
       target_item_slug: payload.target_item_slug,
       target_count: payload.target_count,
+      cox_personal_points: payload.cox_personal_points,
+      cox_group_points: payload.cox_group_points,
+      toa_raid_level: payload.toa_raid_level,
+      toa_personal_points: payload.toa_personal_points,
+      toa_team_points: payload.toa_team_points,
+      tob_deaths: payload.tob_deaths,
+      tob_skipped_rooms: payload.tob_skipped_rooms,
+      tob_mvp_bonus: payload.tob_mvp_bonus,
     });
     renderSimulationResults(result);
   } catch (error) {

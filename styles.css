@@ -1,20 +1,20 @@
 :root {
-  --bg-1: #0b110f;
-  --bg-2: #131915;
-  --panel: rgba(15, 22, 19, 0.94);
-  --panel-strong: rgba(11, 17, 15, 0.98);
-  --panel-border: rgba(217, 191, 123, 0.16);
+  --bg-1: #0d1110;
+  --bg-2: #111716;
+  --panel: #131918;
+  --panel-strong: #0f1413;
+  --panel-border: rgba(255, 255, 255, 0.08);
   --text: #f5edd8;
   --muted: #b8b09b;
   --accent: #d8bc72;
   --accent-strong: #f1df98;
   --danger: #dd8c76;
-  --shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
-  --display-font: "Bahnschrift", "Segoe UI Semibold", "Segoe UI", sans-serif;
-  --page-width: 1480px;
-  --sidebar-width: 310px;
-  --module-pad: clamp(11px, 1vw, 16px);
-  --module-gap: clamp(8px, 0.8vw, 14px);
+  --shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+  --display-font: "Segoe UI Semibold", "Segoe UI", sans-serif;
+  --page-width: 1540px;
+  --sidebar-width: 280px;
+  --module-pad: clamp(10px, 0.9vw, 14px);
+  --module-gap: clamp(8px, 0.75vw, 12px);
 }
 
 * {
@@ -27,10 +27,6 @@ body {
   min-height: 100%;
   height: 100%;
   background-color: var(--bg-1);
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 32px 32px;
   color: var(--text);
   font-family: "Segoe UI", "Trebuchet MS", "Verdana", sans-serif;
 }
@@ -54,11 +50,11 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--module-gap);
-  width: min(var(--page-width), calc(100% - clamp(16px, 2vw, 28px)));
+  width: min(var(--page-width), calc(100% - clamp(14px, 1.8vw, 24px)));
   margin: 0 auto;
   align-items: start;
   min-height: 100vh;
-  padding: clamp(10px, 1.4vw, 18px);
+  padding: clamp(10px, 1.2vw, 16px);
 }
 
 .sidebar,
@@ -67,7 +63,7 @@ body {
   border: 1px solid var(--panel-border);
   border-radius: 0;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(4px);
+  backdrop-filter: none;
 }
 
 .sidebar {
@@ -99,9 +95,9 @@ body {
 }
 
 .brand h1 {
-  font-size: clamp(1.1rem, 1.5vw, 1.45rem);
+  font-size: clamp(1rem, 1.35vw, 1.3rem);
   line-height: 1.08;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .subtle,
@@ -128,15 +124,15 @@ button {
 .text-input {
   width: 100%;
   padding: 9px 11px;
-  border: 1px solid rgba(217, 191, 123, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0;
-  background: rgba(8, 12, 11, 0.96);
+  background: rgba(7, 11, 10, 0.94);
   color: var(--text);
 }
 
 .text-input:focus {
-  outline: 2px solid rgba(217, 191, 123, 0.5);
-  border-color: rgba(217, 191, 123, 0.7);
+  outline: 2px solid rgba(241, 223, 152, 0.45);
+  border-color: rgba(241, 223, 152, 0.7);
 }
 
 .checkbox {
@@ -205,12 +201,12 @@ button {
 
 .hero-card {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(220px, 280px);
+  grid-template-columns: minmax(0, 1.25fr) minmax(200px, 240px);
   gap: var(--module-gap);
   padding: var(--module-pad);
   background: var(--panel-strong);
   align-items: stretch;
-  min-height: clamp(190px, 18vw, 260px);
+  min-height: clamp(160px, 14vw, 220px);
 }
 
 .hero-copy {
@@ -231,7 +227,7 @@ button {
   align-items: center;
   gap: 12px;
   max-width: 100%;
-  font-size: clamp(1.45rem, 3vw, 3rem);
+  font-size: clamp(1.25rem, 2.4vw, 2.25rem);
   line-height: 0.97;
   letter-spacing: 0.01em;
   font-family: var(--display-font);
@@ -263,9 +259,9 @@ button {
 .activity-picker-hint {
   margin: -2px 0 0;
   color: var(--muted);
-  max-width: 48ch;
+  max-width: 54ch;
   font-family: var(--display-font);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
   font-size: 0.78rem;
 }
 
@@ -300,23 +296,23 @@ button {
 .hero-art {
   display: grid;
   place-items: center;
-  min-height: 180px;
+  min-height: 150px;
   border-radius: 0;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(9, 14, 12, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(8, 12, 11, 0.72);
   overflow: hidden;
 }
 
 .hero-art img {
   max-width: 100%;
-  max-height: 180px;
+  max-height: 150px;
   object-fit: contain;
   image-rendering: pixelated;
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
   gap: var(--module-gap);
   align-items: start;
 }
@@ -347,7 +343,7 @@ button {
   align-items: center;
   margin-bottom: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .panel-header h3 {
@@ -366,7 +362,7 @@ button {
   list-style: none;
   padding: 11px 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(9, 14, 12, 0.72);
+  background: rgba(8, 12, 11, 0.78);
   color: var(--text);
   font-weight: 700;
   font-family: var(--display-font);
@@ -400,14 +396,40 @@ button {
 
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
+}
+
+.raid-controls {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  margin-top: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(7, 11, 10, 0.55);
+}
+
+.raid-control-group {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(11, 16, 15, 0.7);
+}
+
+.field-group-title {
+  margin: 0;
+  font-family: var(--display-font);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  color: var(--accent-strong);
 }
 
 .primary-button {
   width: fit-content;
   padding: 10px 14px;
-  border: 1px solid rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.78);
   border-radius: 0;
   background: var(--accent);
   color: #231a0a;
@@ -460,8 +482,8 @@ button {
 .metric-card {
   padding: 12px;
   border-radius: 0;
-  background: rgba(9, 14, 12, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(8, 12, 11, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .metric-card strong {
@@ -516,8 +538,8 @@ button {
 .drop-section {
   padding: 12px 12px 13px;
   border-radius: 0;
-  background: rgba(9, 14, 12, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(8, 12, 11, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   min-width: 0;
 }
 
@@ -537,8 +559,8 @@ button {
   display: grid;
   gap: 10px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(8, 15, 13, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(8, 12, 11, 0.7);
 }
 
 .loot-highlight-value {
@@ -561,7 +583,7 @@ button {
 .notable-item {
   padding: 12px 14px;
   border-radius: 0;
-  background: rgba(9, 14, 12, 0.55);
+  background: rgba(8, 12, 11, 0.68);
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
@@ -620,7 +642,7 @@ button {
   gap: 14px;
   padding: var(--module-pad);
   border: 1px solid var(--panel-border);
-  background: rgba(10, 16, 14, 0.98);
+  background: rgba(10, 15, 14, 0.98);
   box-shadow: var(--shadow);
   animation: modal-in 180ms ease;
 }
@@ -681,7 +703,7 @@ button {
   align-content: start;
   padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(9, 14, 12, 0.62);
+  background: rgba(8, 12, 11, 0.68);
   color: var(--text);
   cursor: pointer;
   min-width: 0;
@@ -693,14 +715,14 @@ button {
 .activity-tile:hover {
   transform: translateY(-2px);
   border-color: rgba(217, 191, 123, 0.38);
-  background: rgba(18, 28, 24, 0.94);
+  background: rgba(16, 23, 21, 0.92);
 }
 
 .activity-tile img {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: contain;
-  background: rgba(4, 8, 7, 0.72);
+  background: rgba(4, 7, 6, 0.78);
   image-rendering: pixelated;
 }
 
@@ -734,7 +756,7 @@ button {
   place-items: center;
   aspect-ratio: 1 / 1;
   color: var(--muted);
-  background: rgba(4, 8, 7, 0.72);
+  background: rgba(4, 7, 6, 0.78);
   border: 1px solid rgba(255, 255, 255, 0.04);
   font-family: var(--display-font);
   letter-spacing: 0.02em;
@@ -804,6 +826,35 @@ body.modal-open {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1080px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .modal {
+    padding: 10px;
+  }
+
+  .modal-panel {
+    width: min(100vw - 20px, 1520px);
+    height: min(92vh, 900px);
+  }
+
+  .activity-grid {
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
   }
 }
 
