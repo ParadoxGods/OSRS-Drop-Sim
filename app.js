@@ -94,7 +94,7 @@ const state = {
   selectedActivity: null,
   selectedVariantId: null,
   activeResultsTab: "overview",
-  simulationMode: "fixed",
+  simulationMode: null,
   paneView: "setup",
 };
 
@@ -106,6 +106,8 @@ const elements = {
   modalSearch: document.getElementById("modalSearch"),
   modalSupportedOnly: document.getElementById("modalSupportedOnly"),
   modalCountLabel: document.getElementById("modalCountLabel"),
+  activitySelectionBlock: document.getElementById("activitySelectionBlock"),
+  activityDetailsBlock: document.getElementById("activityDetailsBlock"),
   activityMeta: document.getElementById("activityMeta"),
   activityNote: document.getElementById("activityNote"),
   sourceLink: document.getElementById("sourceLink"),
@@ -344,6 +346,17 @@ function getGpEligibleActivities() {
   return state.activities.filter(isGpComparisonEligible);
 }
 
+function requiresActivitySelection(mode = state.simulationMode) {
+  return mode === "fixed" || mode === "target";
+}
+
+function renderSetupProgress() {
+  const hasMode = Boolean(state.simulationMode);
+  const needsActivity = requiresActivitySelection();
+  elements.activitySelectionBlock.hidden = !hasMode || !needsActivity;
+  elements.activityDetailsBlock.hidden = !hasMode || (needsActivity && !state.selectedActivity);
+}
+
 function matchesActivityFilter(activity, query) {
   if (!query) {
     return true;
@@ -496,10 +509,32 @@ function getActiveActivityView(activity = state.selectedActivity) {
 }
 
 function renderActivityHeader(activity, view = getActiveActivityView(activity)) {
-  const label = activity.name || "Select an activity";
+  const label = activity?.name || "Select an activity";
   elements.activityPickerTrigger.textContent = "Select item";
   elements.activityPickerTrigger.title = `Current activity: ${label}. Click to change the activity.`;
   elements.activityPickerTrigger.setAttribute("aria-label", `Current activity: ${label}. Click to change the activity.`);
+
+  if (!activity) {
+    const chips = state.simulationMode === "gp"
+      ? [
+          "GP comparison",
+          `${formatNumber(getGpEligibleActivities().length)} eligible bosses`,
+          "Kill-based only",
+        ]
+      : [];
+    elements.activityMeta.innerHTML = chips
+      .filter(Boolean)
+      .map((text) => `<span class="meta-chip">${escapeHtml(text)}</span>`)
+      .join("");
+    elements.activityNote.textContent = "";
+    elements.activityNote.hidden = true;
+    elements.sourceLink.href = "#";
+    elements.sourceLink.hidden = true;
+    elements.activityImage.removeAttribute("src");
+    elements.activityImage.alt = "";
+    elements.activityImage.hidden = true;
+    return;
+  }
 
   const chips = state.simulationMode === "gp"
     ? [
@@ -563,6 +598,7 @@ function showSetupStage() {
   state.paneView = "setup";
   elements.setupStage.hidden = false;
   elements.resultsStage.hidden = true;
+  renderSetupProgress();
 }
 
 function showResultsStage(showActions = true) {
@@ -677,8 +713,12 @@ function renderTargetOptions(activity) {
   }
 }
 
+function getSetupActivityView() {
+  return state.simulationMode === "gp" ? null : getActiveActivityView(state.selectedActivity);
+}
+
 function setSimulationMode(mode) {
-  state.simulationMode = ["fixed", "target", "gp"].includes(mode) ? mode : "fixed";
+  state.simulationMode = ["fixed", "target", "gp"].includes(mode) ? mode : null;
   const isFixedMode = state.simulationMode === "fixed";
   const isTargetMode = state.simulationMode === "target";
   const isGpMode = state.simulationMode === "gp";
@@ -693,23 +733,87 @@ function setSimulationMode(mode) {
   elements.targetCountField.hidden = !isTargetMode;
   elements.targetGpField.hidden = !isGpMode;
   showSetupStage();
-
-  if (state.selectedActivity) {
-    refreshSelectedActivityView(false);
-  }
+  refreshSelectedActivityView(false);
 }
 
 function renderSimulationState(activity) {
+  const isFixedMode = state.simulationMode === "fixed";
+  const isTargetMode = state.simulationMode === "target";
+  const isGpMode = state.simulationMode === "gp";
+  const modeChosen = Boolean(state.simulationMode);
+
+  elements.killsInput.max = String(MAX_SIM_CAP);
+  elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
+  elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
+  elements.targetGpValue.value = String(clampGpTarget(elements.targetGpValue.value || 1));
+
+  if (!modeChosen) {
+    elements.simulateButton.disabled = true;
+    elements.variantField.hidden = true;
+    elements.killsField.hidden = true;
+    elements.targetItemField.hidden = true;
+    elements.targetCountField.hidden = true;
+    elements.targetGpField.hidden = true;
+    elements.encounterSettings.hidden = true;
+    elements.encounterSettings.open = false;
+    elements.clueControls.hidden = true;
+    elements.raidControls.hidden = true;
+    elements.targetItem.disabled = true;
+    elements.targetCount.disabled = true;
+    elements.targetGpValue.disabled = true;
+    elements.killsInput.disabled = true;
+    elements.simulationHelp.textContent = "Choose a mode to begin.";
+    return;
+  }
+
+  if (isGpMode && !activity) {
+    const disabled = getGpEligibleActivities().length === 0;
+    elements.simulateButton.disabled = disabled;
+    elements.variantField.hidden = true;
+    elements.killsField.hidden = true;
+    elements.targetItemField.hidden = true;
+    elements.targetCountField.hidden = true;
+    elements.targetGpField.hidden = false;
+    elements.encounterSettings.hidden = true;
+    elements.encounterSettings.open = false;
+    elements.clueControls.hidden = true;
+    elements.raidControls.hidden = true;
+    elements.targetItem.disabled = true;
+    elements.targetCount.disabled = true;
+    elements.targetGpValue.disabled = disabled;
+    elements.killsInput.disabled = true;
+    elements.simulationHelp.textContent = disabled
+      ? "No eligible kill-based bosses are available for GP comparison."
+      : `Put in a GP target, hit simulate, and the results view will rank ${formatNumber(getGpEligibleActivities().length)} eligible kill-based bosses by median KC in a horizontal chart. Raids, clues, chest runs, wave encounters, and other non-standard reward loops are excluded.`;
+    return;
+  }
+
+  if (!activity) {
+    elements.simulateButton.disabled = true;
+    elements.variantField.hidden = true;
+    elements.killsField.hidden = !isFixedMode;
+    elements.targetItemField.hidden = !isTargetMode;
+    elements.targetCountField.hidden = !isTargetMode;
+    elements.targetGpField.hidden = true;
+    elements.encounterSettings.hidden = true;
+    elements.encounterSettings.open = false;
+    elements.clueControls.hidden = true;
+    elements.raidControls.hidden = true;
+    elements.targetItem.disabled = true;
+    elements.targetCount.disabled = true;
+    elements.targetGpValue.disabled = true;
+    elements.killsInput.disabled = true;
+    elements.simulationHelp.textContent = "Choose an activity to load the simulator.";
+    return;
+  }
+
   const rootSlug = state.selectedActivity.slug;
   const raidType = getRaidType(rootSlug);
   const clueTier = getEffectiveClueTier(rootSlug, activity);
   const clueUiDetails = getClueUiDetails(rootSlug);
   const rollRange = activity.simulation?.reward_roll_range;
-  const isFixedMode = state.simulationMode === "fixed";
-  const isTargetMode = state.simulationMode === "target";
-  const isGpMode = state.simulationMode === "gp";
-  const disabled = isGpMode ? getGpEligibleActivities().length === 0 : (!activity.supported || activity.simulation_disabled);
-  const hasEncounterSettings = !isGpMode && Boolean(clueTier || raidType);
+  const disabled = !activity.supported || activity.simulation_disabled;
+  const hasEncounterSettings = Boolean(clueTier || raidType);
   const hasVariantOptions = (state.selectedActivity?.variants || []).length > 1;
 
   elements.simulateButton.disabled = disabled;
@@ -722,10 +826,6 @@ function renderSimulationState(activity) {
   elements.targetCount.disabled = disabled || !isTargetMode;
   elements.targetGpValue.disabled = disabled || !isGpMode;
   elements.killsInput.disabled = disabled || !isFixedMode;
-  elements.killsInput.max = String(MAX_SIM_CAP);
-  elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
-  elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
-  elements.targetGpValue.value = String(clampGpTarget(elements.targetGpValue.value || 1));
 
   elements.encounterSettings.hidden = !hasEncounterSettings;
   if (!hasEncounterSettings) {
@@ -810,28 +910,31 @@ function setRunButtonState(running) {
     elements.simulateButton.disabled = true;
     return;
   }
-  if (!state.selectedActivity) {
-    elements.simulateButton.disabled = true;
-    return;
-  }
-  renderSimulationState(getActiveActivityView(state.selectedActivity));
+  renderSimulationState(getSetupActivityView());
 }
 
 function collectSimulationPayloadAndOptions() {
-  if (!state.selectedActivity) {
+  if (!state.simulationMode) {
     return null;
   }
 
-  const activityView = getActiveActivityView(state.selectedActivity);
-  const rootSlug = state.selectedActivity.slug;
-  const payload = {
-    ...activityView,
-    slug: rootSlug,
-    supported: activityView.supported ?? state.selectedActivity.supported,
-    simulation_disabled: activityView.simulation_disabled ?? state.selectedActivity.simulation_disabled,
-  };
+  const isGpMode = state.simulationMode === "gp";
+  if (!isGpMode && !state.selectedActivity) {
+    return null;
+  }
 
-  if (state.selectedVariantId) {
+  const activityView = isGpMode ? null : getActiveActivityView(state.selectedActivity);
+  const rootSlug = state.selectedActivity?.slug || null;
+  const payload = isGpMode
+    ? null
+    : {
+        ...activityView,
+        slug: rootSlug,
+        supported: activityView.supported ?? state.selectedActivity.supported,
+        simulation_disabled: activityView.simulation_disabled ?? state.selectedActivity.simulation_disabled,
+      };
+
+  if (payload && state.selectedVariantId) {
     payload.variant_id = state.selectedVariantId;
   }
 
@@ -843,7 +946,7 @@ function collectSimulationPayloadAndOptions() {
     max_chase_kills: MAX_SIM_CAP,
   };
 
-  const clueTier = getEffectiveClueTier(rootSlug, activityView);
+  const clueTier = rootSlug ? getEffectiveClueTier(rootSlug, activityView) : null;
   if (clueTier) {
     options.clue_mimic_attempts = Number(elements.clueMimicAttempts.value || 1);
     if (rootSlug !== "mimic") {
@@ -851,7 +954,7 @@ function collectSimulationPayloadAndOptions() {
     }
   }
 
-  const raidType = getRaidType(rootSlug);
+  const raidType = rootSlug ? getRaidType(rootSlug) : null;
   if (raidType === "cox") {
     options.cox_personal_points = Number(elements.coxPersonalPoints.value || 0);
     options.cox_group_points = Number(elements.coxGroupPoints.value || 0);
@@ -877,6 +980,11 @@ function collectSimulationPayloadAndOptions() {
 }
 
 function renderRunSummary() {
+  if (!state.simulationMode) {
+    elements.runSummary.innerHTML = "";
+    return;
+  }
+
   const data = collectSimulationPayloadAndOptions();
   if (!data) {
     elements.runSummary.innerHTML = "";
@@ -947,12 +1055,15 @@ function renderPlaceholderResults(message = "Run a simulation to see the loot re
 }
 
 function refreshSelectedActivityView(resetResults = false) {
-  if (!state.selectedActivity) {
-    return;
+  renderSetupProgress();
+  const view = getSetupActivityView();
+  const headerActivity = state.simulationMode === "gp" ? null : state.selectedActivity;
+  renderActivityHeader(headerActivity, view);
+  if (view) {
+    renderTargetOptions(view);
+  } else {
+    elements.targetItem.innerHTML = '<option value="">Select a target item</option>';
   }
-  const view = getActiveActivityView(state.selectedActivity);
-  renderActivityHeader(state.selectedActivity, view);
-  renderTargetOptions(view);
   renderSimulationState(view);
   renderRunSummary();
   if (resetResults) {
@@ -1378,15 +1489,8 @@ async function loadApp() {
   state.activities = state.status.activities || [];
   state.filteredActivities = state.activities.slice();
   renderModalPicker();
-
-  const preferred =
-    state.activities.find((activity) => activity.supported && !activity.simulation_disabled) ||
-    state.activities.find((activity) => activity.supported) ||
-    state.activities[0];
-
-  if (preferred) {
-    await selectActivity(preferred.slug);
-  }
+  refreshSelectedActivityView(false);
+  renderPlaceholderResults();
 }
 
 elements.activityPickerTrigger.addEventListener("click", openActivityModal);
@@ -1447,9 +1551,9 @@ elements.modeGpButton.addEventListener("click", () => {
         elements.targetGpValue.value = String(cleaned);
       }
     }
-    if (state.selectedActivity) {
+    if (state.simulationMode) {
       showSetupStage();
-      renderSimulationState(getActiveActivityView(state.selectedActivity));
+      renderSimulationState(getSetupActivityView());
     }
     renderRunSummary();
   });
@@ -1481,7 +1585,14 @@ elements.screenshotButton.addEventListener("click", async () => {
 
 elements.simulationForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!state.selectedActivity) {
+  if (!state.simulationMode) {
+    elements.simulationHelp.textContent = "Choose a mode before running the simulator.";
+    elements.modeFixedButton.focus();
+    return;
+  }
+  if (requiresActivitySelection() && !state.selectedActivity) {
+    elements.simulationHelp.textContent = "Choose an activity before running the simulator.";
+    elements.activityPickerTrigger.focus();
     return;
   }
 

@@ -209,6 +209,11 @@ select {
   align-items: center;
 }
 
+.activity-details-block {
+  display: grid;
+  gap: 10px;
+}
+
 .activity-art {
   display: grid;
   place-items: center;

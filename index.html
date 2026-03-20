@@ -34,7 +34,7 @@
                     <span class="subtle">Pick an encounter, adjust the run, then roll it.</span>
                   </div>
 
-                  <div class="activity-strip setup-activity-strip">
+                  <div id="activitySelectionBlock" class="activity-strip setup-activity-strip" hidden>
                     <div class="activity-art">
                       <img id="activityImage" alt="" hidden>
                       <div class="activity-art-fallback">?</div>
@@ -44,148 +44,150 @@
                     </div>
                   </div>
 
-                  <div id="activityMeta" class="meta-row"></div>
-                  <div class="source-row">
-                    <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
-                  </div>
-                  <p id="activityNote" class="note" hidden></p>
+                  <div id="activityDetailsBlock" class="activity-details-block" hidden>
+                    <div id="activityMeta" class="meta-row"></div>
+                    <div class="source-row">
+                      <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
+                    </div>
+                    <p id="activityNote" class="note" hidden></p>
 
-                  <div class="form-grid primary-config-grid">
-                    <label id="variantField" class="config-field config-field-inline config-field-wide" hidden>
-                      <span class="field-label">Variant</span>
-                      <select id="variantSelect" class="text-input">
-                        <option value="">Default</option>
-                      </select>
-                    </label>
-                    <label id="killsField" class="config-field config-field-inline config-field-compact">
-                      <span class="field-label">Attempts</span>
-                      <input id="killsInput" class="text-input" type="number" min="1" max="25000000" value="100">
-                    </label>
-                    <label id="targetItemField" class="config-field config-field-inline config-field-item" hidden>
-                      <span class="field-label">Target item</span>
-                      <select id="targetItem" class="text-input">
-                        <option value="">Select a target item</option>
-                      </select>
-                    </label>
-                    <label id="targetCountField" class="config-field config-field-inline config-field-count" hidden>
-                      <span class="field-label">Count</span>
-                      <input id="targetCount" class="text-input" type="number" min="1" value="1">
-                    </label>
-                    <label id="targetGpField" class="config-field config-field-inline config-field-compact" hidden>
-                      <span class="field-label">Target GP</span>
-                      <input id="targetGpValue" class="text-input" type="number" min="1" value="10000000" inputmode="numeric">
-                    </label>
-                  </div>
-
-                  <details id="encounterSettings" class="encounter-settings" hidden>
-                    <summary>Encounter settings</summary>
-                    <div id="clueControls" class="activity-controls" hidden>
-                      <div class="control-group">
-                        <p class="field-group-title">Clue settings</p>
-                        <div class="form-grid compact-grid">
-                          <label id="clueMimicEnabledField" class="toggle-field">
-                            <span class="field-label">Enable Mimic casket</span>
-                            <input id="clueMimicEnabled" type="checkbox" checked>
-                          </label>
-                          <label id="clueMimicAttemptsField">
-                            <span class="field-label">Mimic attempts used</span>
-                            <input id="clueMimicAttempts" class="text-input" type="number" min="1" max="6" value="1">
-                          </label>
-                        </div>
-                      </div>
+                    <div class="form-grid primary-config-grid">
+                      <label id="variantField" class="config-field config-field-inline config-field-wide" hidden>
+                        <span class="field-label">Variant</span>
+                        <select id="variantSelect" class="text-input">
+                          <option value="">Default</option>
+                        </select>
+                      </label>
+                      <label id="killsField" class="config-field config-field-inline config-field-compact">
+                        <span class="field-label">Attempts</span>
+                        <input id="killsInput" class="text-input" type="number" min="1" max="25000000" value="100">
+                      </label>
+                      <label id="targetItemField" class="config-field config-field-inline config-field-item" hidden>
+                        <span class="field-label">Target item</span>
+                        <select id="targetItem" class="text-input">
+                          <option value="">Select a target item</option>
+                        </select>
+                      </label>
+                      <label id="targetCountField" class="config-field config-field-inline config-field-count" hidden>
+                        <span class="field-label">Count</span>
+                        <input id="targetCount" class="text-input" type="number" min="1" value="1">
+                      </label>
+                      <label id="targetGpField" class="config-field config-field-inline config-field-compact" hidden>
+                        <span class="field-label">Target GP</span>
+                        <input id="targetGpValue" class="text-input" type="number" min="1" value="10000000" inputmode="numeric">
+                      </label>
                     </div>
 
-                    <div id="raidControls" class="activity-controls" hidden>
-                      <div id="coxControls" class="control-group" hidden>
-                        <p class="field-group-title">Chambers of Xeric</p>
-                        <div class="form-grid compact-grid">
-                          <label>
-                            <span class="field-label">Your points</span>
-                            <input id="coxPersonalPoints" class="text-input" type="number" min="0" value="30000">
-                          </label>
-                          <label>
-                            <span class="field-label">Team points</span>
-                            <input id="coxGroupPoints" class="text-input" type="number" min="0" value="60000">
-                          </label>
-                          <label id="coxTimedCmField" class="toggle-field" hidden>
-                            <span class="field-label">Timed CM clear</span>
-                            <input id="coxTimedCm" type="checkbox">
-                          </label>
-                          <label class="toggle-field">
-                            <span class="field-label">Elite CA clue rate</span>
-                            <input id="coxEliteCa" type="checkbox">
-                          </label>
+                    <details id="encounterSettings" class="encounter-settings" hidden>
+                      <summary>Encounter settings</summary>
+                      <div id="clueControls" class="activity-controls" hidden>
+                        <div class="control-group">
+                          <p class="field-group-title">Clue settings</p>
+                          <div class="form-grid compact-grid">
+                            <label id="clueMimicEnabledField" class="toggle-field">
+                              <span class="field-label">Enable Mimic casket</span>
+                              <input id="clueMimicEnabled" type="checkbox" checked>
+                            </label>
+                            <label id="clueMimicAttemptsField">
+                              <span class="field-label">Mimic attempts used</span>
+                              <input id="clueMimicAttempts" class="text-input" type="number" min="1" max="6" value="1">
+                            </label>
+                          </div>
                         </div>
                       </div>
 
-                      <div id="toaControls" class="control-group" hidden>
-                        <p class="field-group-title">Tombs of Amascut</p>
-                        <div class="form-grid compact-grid">
-                          <label>
-                            <span class="field-label">Raid level</span>
-                            <input id="toaRaidLevel" class="text-input" type="number" min="0" max="600" value="300">
-                          </label>
-                          <label>
-                            <span class="field-label">Your loot points</span>
-                            <input id="toaPersonalPoints" class="text-input" type="number" min="0" value="15000">
-                          </label>
-                          <label>
-                            <span class="field-label">Team loot points</span>
-                            <input id="toaTeamPoints" class="text-input" type="number" min="0" value="30000">
-                          </label>
-                          <label>
-                            <span class="field-label">Completions</span>
-                            <input id="toaCompletions" class="text-input" type="number" min="0" value="0">
-                          </label>
-                          <label class="toggle-field">
-                            <span class="field-label">Thread already owned</span>
-                            <input id="toaThreadObtained" type="checkbox">
-                          </label>
+                      <div id="raidControls" class="activity-controls" hidden>
+                        <div id="coxControls" class="control-group" hidden>
+                          <p class="field-group-title">Chambers of Xeric</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Your points</span>
+                              <input id="coxPersonalPoints" class="text-input" type="number" min="0" value="30000">
+                            </label>
+                            <label>
+                              <span class="field-label">Team points</span>
+                              <input id="coxGroupPoints" class="text-input" type="number" min="0" value="60000">
+                            </label>
+                            <label id="coxTimedCmField" class="toggle-field" hidden>
+                              <span class="field-label">Timed CM clear</span>
+                              <input id="coxTimedCm" type="checkbox">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">Elite CA clue rate</span>
+                              <input id="coxEliteCa" type="checkbox">
+                            </label>
+                          </div>
                         </div>
-                      </div>
 
-                      <div id="tobControls" class="control-group" hidden>
-                        <p class="field-group-title">Theatre of Blood</p>
-                        <div class="form-grid compact-grid">
-                          <label>
-                            <span class="field-label">Team size</span>
-                            <input id="tobTeamSize" class="text-input" type="number" min="1" max="5" value="4">
-                          </label>
-                          <label>
-                            <span class="field-label">Your deaths</span>
-                            <input id="tobDeaths" class="text-input" type="number" min="0" value="0">
-                          </label>
-                          <label>
-                            <span class="field-label">Team deaths</span>
-                            <input id="tobTeamDeaths" class="text-input" type="number" min="0" value="0">
-                          </label>
-                          <label>
-                            <span class="field-label">Your skipped rooms</span>
-                            <input id="tobSkippedRooms" class="text-input" type="number" min="0" value="0">
-                          </label>
-                          <label>
-                            <span class="field-label">Team skipped rooms</span>
-                            <input id="tobTeamSkippedRooms" class="text-input" type="number" min="0" value="0">
-                          </label>
-                          <label>
-                            <span class="field-label">MVP points</span>
-                            <input id="tobMvpBonus" class="text-input" type="number" min="0" max="14" value="4">
-                          </label>
-                          <label id="tobTimedHmField" class="toggle-field" hidden>
-                            <span class="field-label">Timed HM clear</span>
-                            <input id="tobTimedHm" type="checkbox">
-                          </label>
+                        <div id="toaControls" class="control-group" hidden>
+                          <p class="field-group-title">Tombs of Amascut</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Raid level</span>
+                              <input id="toaRaidLevel" class="text-input" type="number" min="0" max="600" value="300">
+                            </label>
+                            <label>
+                              <span class="field-label">Your loot points</span>
+                              <input id="toaPersonalPoints" class="text-input" type="number" min="0" value="15000">
+                            </label>
+                            <label>
+                              <span class="field-label">Team loot points</span>
+                              <input id="toaTeamPoints" class="text-input" type="number" min="0" value="30000">
+                            </label>
+                            <label>
+                              <span class="field-label">Completions</span>
+                              <input id="toaCompletions" class="text-input" type="number" min="0" value="0">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">Thread already owned</span>
+                              <input id="toaThreadObtained" type="checkbox">
+                            </label>
+                          </div>
+                        </div>
+
+                        <div id="tobControls" class="control-group" hidden>
+                          <p class="field-group-title">Theatre of Blood</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Team size</span>
+                              <input id="tobTeamSize" class="text-input" type="number" min="1" max="5" value="4">
+                            </label>
+                            <label>
+                              <span class="field-label">Your deaths</span>
+                              <input id="tobDeaths" class="text-input" type="number" min="0" value="0">
+                            </label>
+                            <label>
+                              <span class="field-label">Team deaths</span>
+                              <input id="tobTeamDeaths" class="text-input" type="number" min="0" value="0">
+                            </label>
+                            <label>
+                              <span class="field-label">Your skipped rooms</span>
+                              <input id="tobSkippedRooms" class="text-input" type="number" min="0" value="0">
+                            </label>
+                            <label>
+                              <span class="field-label">Team skipped rooms</span>
+                              <input id="tobTeamSkippedRooms" class="text-input" type="number" min="0" value="0">
+                            </label>
+                            <label>
+                              <span class="field-label">MVP points</span>
+                              <input id="tobMvpBonus" class="text-input" type="number" min="0" max="14" value="4">
+                            </label>
+                            <label id="tobTimedHmField" class="toggle-field" hidden>
+                              <span class="field-label">Timed HM clear</span>
+                              <input id="tobTimedHm" type="checkbox">
+                            </label>
+                          </div>
                         </div>
                       </div>
+                    </details>
+
+                    <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
+                    <div id="runSummary" class="summary-grid"></div>
+                    <div class="sim-nav single-action">
+                      <button id="simulateButton" class="primary-button run-button" type="submit">
+                        <span id="simulateButtonLabel">Run simulation</span>
+                      </button>
                     </div>
-                  </details>
-
-                  <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
-                  <div id="runSummary" class="summary-grid"></div>
-                  <div class="sim-nav single-action">
-                    <button id="simulateButton" class="primary-button run-button" type="submit">
-                      <span id="simulateButtonLabel">Run simulation</span>
-                    </button>
                   </div>
                 </section>
 
