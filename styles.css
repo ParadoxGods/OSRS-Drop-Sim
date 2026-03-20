@@ -933,6 +933,16 @@ label,
   gap: 10px;
 }
 
+.comparison-loot-detail-card {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.comparison-loot-subtitle {
+  padding-bottom: 2px;
+}
+
 .gp-detail-metrics {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -1044,6 +1054,11 @@ label,
   animation: modal-in 180ms ease;
 }
 
+.comparison-loot-modal-panel {
+  width: min(960px, calc(100vw - 24px));
+  height: min(82vh, 760px);
+}
+
 .modal-header,
 .picker-meta {
   display: flex;
@@ -1071,6 +1086,19 @@ label,
   color: var(--text);
   font-size: 1.3rem;
   line-height: 1;
+}
+
+.comparison-loot-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding-right: 2px;
+}
+
+.comparison-modal-hint {
+  margin-top: -2px;
 }
 
 .activity-grid {

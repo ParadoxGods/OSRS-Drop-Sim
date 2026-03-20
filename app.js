@@ -117,6 +117,10 @@ const elements = {
   modalSupportedOnly: document.getElementById("modalSupportedOnly"),
   modalCountLabel: document.getElementById("modalCountLabel"),
   modalHintLabel: document.getElementById("modalHintLabel"),
+  comparisonLootModal: document.getElementById("comparisonLootModal"),
+  comparisonLootModalTitle: document.getElementById("comparisonLootModalTitle"),
+  comparisonLootModalBody: document.getElementById("comparisonLootModalBody"),
+  closeComparisonLootModal: document.getElementById("closeComparisonLootModal"),
   activitySelectionBlock: document.getElementById("activitySelectionBlock"),
   activityDetailsBlock: document.getElementById("activityDetailsBlock"),
   activityMeta: document.getElementById("activityMeta"),
@@ -662,7 +666,7 @@ async function renderModalPicker() {
 async function openActivityModal() {
   state.pickerMode = state.simulationMode === "target" ? "item" : "activity";
   elements.activityModal.hidden = false;
-  document.body.classList.add("modal-open");
+  syncModalState();
   elements.modalSearch.value = "";
   elements.modalSupportedOnly.checked = false;
   configureModalForCurrentMode();
@@ -677,7 +681,49 @@ async function openActivityModal() {
 
 function closeActivityModal() {
   elements.activityModal.hidden = true;
-  document.body.classList.remove("modal-open");
+  syncModalState();
+}
+
+function syncModalState() {
+  const anyModalOpen = !elements.activityModal.hidden || !elements.comparisonLootModal.hidden;
+  document.body.classList.toggle("modal-open", anyModalOpen);
+}
+
+function closeComparisonLootModal() {
+  elements.comparisonLootModal.hidden = true;
+  syncModalState();
+}
+
+function getComparisonDetailMeta(entry, result) {
+  const preview = entry?.preview_result || null;
+  const averageValue = preview?.kills_completed ? Math.round((preview.total_ge_value || 0) / preview.kills_completed) : 0;
+  const isGpMode = result?.mode === "gp";
+  const title = isGpMode ? `${entry?.name || "Boss"} loot preview` : `${entry?.name || "Boss"} chase preview`;
+  const subtitle = isGpMode
+    ? "Representative sample from the median GP chase run for this boss"
+    : `Representative sample from the median ${formatNumber(result?.target_count || 1)}x ${result?.target_item_name || "item"} chase for this boss`;
+  const primaryMetricLabel = isGpMode ? "KC to target" : "Median chase KC";
+  return { preview, averageValue, title, subtitle, primaryMetricLabel };
+}
+
+function openComparisonLootModal(slug) {
+  const result = state.lastResult;
+  if (!result || (result.mode !== "gp" && result.mode !== "target_compare")) {
+    return;
+  }
+  const entry = (result.rankings || []).find((row) => row.slug === slug);
+  if (!entry) {
+    return;
+  }
+
+  const detail = getComparisonDetailMeta(entry, result);
+  elements.comparisonLootModalTitle.textContent = detail.title;
+  elements.comparisonLootModalBody.innerHTML = buildComparisonLootDetail(entry, result, { includeTitle: false });
+  elements.comparisonLootModal.hidden = false;
+  syncModalState();
+  window.requestAnimationFrame(() => {
+    elements.closeComparisonLootModal.focus();
+  });
 }
 
 function renderVariantSelector(activity) {
@@ -834,6 +880,7 @@ function showSetupStage() {
   state.paneView = "setup";
   elements.setupStage.hidden = false;
   elements.resultsStage.hidden = true;
+  closeComparisonLootModal();
   renderSetupProgress();
 }
 
@@ -1090,6 +1137,7 @@ async function downloadResultsScreenshot() {
 
 function setSimulationLoading(message, detail = "Rolling rewards and assembling the final loot review.") {
   showResultsStage(false);
+  closeComparisonLootModal();
   state.lastResult = null;
   elements.resultsContext.innerHTML = buildResultsContext();
   setRunButtonState(true);
@@ -1735,38 +1783,41 @@ function buildGpPreviewTable(result) {
   `;
 }
 
-function buildComparisonLootDetail(entry, result) {
-  if (!entry?.preview_result) {
+function buildComparisonLootDetail(entry, result, options = {}) {
+  const { includeTitle = true } = options;
+  const detail = getComparisonDetailMeta(entry, result);
+  if (!detail.preview) {
     return `
       <div class="review-card">
         <div class="review-card-header">
-          <h3>Boss loot preview</h3>
-          <span class="subtle">Click a boss in the ranking to inspect the simulated loot.</span>
+          ${includeTitle ? "<h3>Boss loot preview</h3>" : ""}
+          <span class="subtle">No representative loot sample is available for this boss.</span>
         </div>
-        <div class="results-empty">No representative loot sample is available for this boss.</div>
       </div>
     `;
   }
 
-  const preview = entry.preview_result;
-  const averageValue = preview.kills_completed ? Math.round((preview.total_ge_value || 0) / preview.kills_completed) : 0;
-  const isGpMode = result?.mode === "gp";
-  const title = isGpMode ? `${entry.name} loot preview` : `${entry.name} chase preview`;
-  const subtitle = isGpMode
-    ? "Representative sample from the median GP chase run for this boss"
-    : `Representative sample from the median ${formatNumber(result?.target_count || 1)}x ${escapeHtml(result?.target_item_name || "item")} chase for this boss`;
-  const primaryMetricLabel = isGpMode ? "KC to target" : "Median chase KC";
+  const preview = detail.preview;
+  const headerMarkup = includeTitle
+    ? `
+      <div class="review-card-header">
+        <h3>${escapeHtml(detail.title)}</h3>
+        <span class="subtle">${escapeHtml(detail.subtitle)}</span>
+      </div>
+    `
+    : `
+      <div class="review-card-header comparison-loot-subtitle">
+        <span class="subtle">${escapeHtml(detail.subtitle)}</span>
+      </div>
+    `;
 
   return `
-    <div class="review-card gp-detail-card">
-      <div class="review-card-header">
-        <h3>${escapeHtml(title)}</h3>
-        <span class="subtle">${subtitle}</span>
-      </div>
+    <div class="review-card gp-detail-card comparison-loot-detail-card">
+      ${headerMarkup}
       <div class="metric-grid gp-detail-metrics">
-        ${buildMetricCard(primaryMetricLabel, entry.capped ? `${formatNumber(MAX_SIM_CAP)}+` : formatNumber(entry.median_kills), true)}
+        ${buildMetricCard(detail.primaryMetricLabel, entry.capped ? `${formatNumber(MAX_SIM_CAP)}+` : formatNumber(entry.median_kills), true)}
         ${buildMetricCard("Total value", `${formatShortValue(preview.total_ge_value || 0)} gp`)}
-        ${buildMetricCard("Value / kill", `${formatShortValue(averageValue)} gp`)}
+        ${buildMetricCard("Value / kill", `${formatShortValue(detail.averageValue)} gp`)}
         ${buildMetricCard("Distinct items", formatNumber(preview.distinct_items || 0))}
       </div>
       ${buildGpPreviewTable(preview)}
@@ -1808,17 +1859,17 @@ function buildComparisonRankRow(entry, index, maxKillsForScale, selectedSlug, re
 
 function renderComparisonResults(result) {
   showResultsStage(true);
+  closeComparisonLootModal();
   state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
   const rankings = result.rankings || [];
   if (!rankings.some((entry) => entry.slug === state.activeGpRankingSlug)) {
-    state.activeGpRankingSlug = rankings[0]?.slug || null;
+    state.activeGpRankingSlug = null;
   }
   const best = rankings[0] || null;
   const uncapped = rankings.filter((entry) => !entry.capped);
   const scaleMax = (uncapped.length ? uncapped[uncapped.length - 1].median_kills : (rankings.length ? rankings[rankings.length - 1].median_kills : 1)) || 1;
-  const selectedEntry = rankings.find((entry) => entry.slug === state.activeGpRankingSlug) || rankings[0] || null;
   const chartRows = rankings
     .map((entry, index) => buildComparisonRankRow(entry, index, scaleMax, state.activeGpRankingSlug, result.mode, result.target_item_name))
     .join("");
@@ -1846,6 +1897,11 @@ function renderComparisonResults(result) {
         <span>${comparisonCopy}</span>
       </div>
 
+      <div class="review-note comparison-modal-hint">
+        <strong>Click a boss row</strong>
+        <span>Open a centered loot preview modal to inspect the representative drop sample for that boss.</span>
+      </div>
+
       <div class="review-card gp-chart-card">
         <div class="review-card-header">
           <h3>${chartTitle}</h3>
@@ -1855,14 +1911,13 @@ function renderComparisonResults(result) {
           ${chartRows || `<div class="results-empty">${isGpMode ? "No eligible bosses were available for GP comparison." : "No eligible bosses can drop the selected item."}</div>`}
         </div>
       </div>
-
-      ${buildComparisonLootDetail(selectedEntry, result)}
     </div>
   `;
 }
 
 function renderSimulationResults(result) {
   showResultsStage(true);
+  closeComparisonLootModal();
   state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
@@ -2260,6 +2315,12 @@ elements.activityModal.addEventListener("click", (event) => {
     closeActivityModal();
   }
 });
+elements.closeComparisonLootModal.addEventListener("click", closeComparisonLootModal);
+elements.comparisonLootModal.addEventListener("click", (event) => {
+  if (event.target.matches("[data-comparison-modal-close]")) {
+    closeComparisonLootModal();
+  }
+});
 
 elements.modalSearch.addEventListener("input", () => {
   void renderModalPicker();
@@ -2269,8 +2330,14 @@ elements.modalSupportedOnly.addEventListener("change", () => {
 });
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !elements.activityModal.hidden) {
-    closeActivityModal();
+  if (event.key === "Escape") {
+    if (!elements.comparisonLootModal.hidden) {
+      closeComparisonLootModal();
+      return;
+    }
+    if (!elements.activityModal.hidden) {
+      closeActivityModal();
+    }
   }
 });
 
@@ -2328,6 +2395,7 @@ elements.simulationResults.addEventListener("click", (event) => {
   if (gpButton && (state.lastResult?.mode === "gp" || state.lastResult?.mode === "target_compare")) {
     state.activeGpRankingSlug = gpButton.dataset.gpSlug;
     renderComparisonResults(state.lastResult);
+    openComparisonLootModal(state.activeGpRankingSlug);
     return;
   }
   const button = event.target.closest("[data-results-tab]");
