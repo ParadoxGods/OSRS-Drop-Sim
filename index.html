@@ -11,40 +11,43 @@
     <header class="site-header">
       <p class="eyebrow">Old School RuneScape</p>
       <h1>Drop Simulator</h1>
-      <p class="site-note">Bosses, raids, clue caskets, and Mimic rewards with wiki-backed loot models.</p>
+      <p class="site-note">A compact simulator for bosses, raids, clue caskets, and Mimic rewards.</p>
     </header>
 
     <main class="main-panel">
-      <section class="hero-card">
-        <div class="hero-copy">
-          <p class="eyebrow">Selected activity</p>
-          <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select an activity</button>
-          <p class="activity-picker-hint">Click the activity name to switch bosses, raids, clue caskets, or Mimic tiers.</p>
-          <div id="activityMeta" class="meta-row"></div>
-          <div class="source-row">
-            <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">Open OSRS Wiki source</a>
-          </div>
-          <p id="activityNote" class="note" hidden></p>
-        </div>
-        <div class="hero-art">
-          <img id="activityImage" alt="" hidden>
-        </div>
-      </section>
-
-      <div class="workspace">
-        <section id="simulationPanel" class="panel simulator-pane">
-          <div class="panel-header">
-            <div>
-              <p class="eyebrow">Simulator</p>
-              <h2>Configure, run, and review</h2>
+      <section id="simulationPanel" class="panel simulator-pane">
+        <div class="simulator-head">
+          <div class="activity-strip">
+            <div class="activity-art">
+              <img id="activityImage" alt="" hidden>
+              <div class="activity-art-fallback">?</div>
+            </div>
+            <div class="activity-copy">
+              <p class="eyebrow">Selected activity</p>
+              <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select an activity</button>
+              <p class="activity-picker-hint">Click the activity name to switch encounters.</p>
+              <div id="activityMeta" class="meta-row"></div>
+              <div class="source-row">
+                <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
+              </div>
+              <p id="activityNote" class="note" hidden></p>
             </div>
           </div>
 
           <div class="stepper" aria-label="Simulation steps">
             <div class="step-pill is-active" data-step-label="configure">1. Configure</div>
-            <div class="step-pill" data-step-label="review">2. Run and review</div>
+            <div class="step-pill" data-step-label="review">2. Review and run</div>
           </div>
+        </div>
 
+        <div class="panel-header compact-header">
+          <div>
+            <p class="eyebrow">Simulator</p>
+            <h2>Configure, run, and review</h2>
+          </div>
+        </div>
+
+        <div class="workspace">
           <form id="simulationForm" class="sim-form">
             <div id="configurationStep" class="sim-step">
               <div class="config-lead">
@@ -206,8 +209,8 @@
 
             <p id="simulationHelp" class="panel-note">Choose an activity to enable simulation.</p>
           </form>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   </div>
 
