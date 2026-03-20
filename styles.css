@@ -527,6 +527,17 @@ label,
   padding: 9px;
 }
 
+.modifier-block {
+  display: grid;
+  gap: 8px;
+}
+
+.modifier-check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .field-group-title {
   margin: 0 0 8px;
   color: var(--accent-strong);
@@ -1209,6 +1220,7 @@ body.modal-open {
 
   .activity-strip,
   .compact-grid,
+  .modifier-check-grid,
   .loot-card-grid,
   .section-card-grid {
     grid-template-columns: 1fr;

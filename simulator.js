@@ -573,6 +573,7 @@ function simulateYamaActivity(activityData, options, rng) {
   const shardsRow = getRowBySlug(activityData, "oathplate-shards");
   const clueRow = getRowBySlug(activityData, "clue-scroll-elite");
   const petRow = getRowBySlug(activityData, "yami");
+  const eliteClueChance = options.yama_elite_ca ? 1 / 28 : 1 / 30;
 
   const foodRows = [
     getRowBySlug(activityData, "pineapple-pizza"),
@@ -651,7 +652,7 @@ function simulateYamaActivity(activityData, options, rng) {
     if (petRow && rng() <= (1 / 2500)) {
       totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
     }
-    if (clueRow && rng() <= (1 / 30)) {
+    if (clueRow && rng() <= eliteClueChance) {
       totalGeValue += addRowLoot(collected, notableDrops, clueRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
     }
 
@@ -661,7 +662,11 @@ function simulateYamaActivity(activityData, options, rng) {
   }
 
   return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
-    note: "Yama uses the base solo reward model from the OSRS Wiki. Contract fights, duo contribution scaling, and the elite CA clue buff are not currently simulated.",
+    note: "Yama uses the base solo reward model from the OSRS Wiki. Contract fights and duo contribution scaling are not currently simulated.",
+    yama_context: {
+      elite_clue_chance: eliteClueChance,
+      elite_ca_clue_boost: Boolean(options.yama_elite_ca),
+    },
   });
 }
 
@@ -788,6 +793,18 @@ function getToaJewelChance(completions) {
 
 function getToaEliteClueChance(personalPoints) {
   return clamp((Math.max(0, Number(personalPoints) || 0) / 2000) / 100, 0, 0.25);
+}
+
+function getOwnedToaJewels(options) {
+  if (Array.isArray(options.toa_owned_jewels)) {
+    return new Set(options.toa_owned_jewels.filter(Boolean));
+  }
+  return new Set([
+    options.toa_owned_eye ? "eye-of-the-corruptor" : null,
+    options.toa_owned_sun ? "jewel-of-the-sun" : null,
+    options.toa_owned_scarab ? "breach-of-the-scarab" : null,
+    options.toa_owned_amascut ? "jewel-of-amascut" : null,
+  ].filter(Boolean));
 }
 
 function calculateTobContext(activityData, options) {
@@ -943,6 +960,7 @@ function simulateToaRaid(activityData, options, rng) {
     getRowBySlug(activityData, "breach-of-the-scarab"),
     getRowBySlug(activityData, "jewel-of-amascut"),
   ].filter(Boolean);
+  const ownedJewels = getOwnedToaJewels(options);
   const eliteClueRow = getRowBySlug(activityData, "clue-scroll-elite");
   const petRow = getRowBySlug(activityData, "tumeken-s-guardian");
   let restrictedUniqueMisses = 0;
@@ -978,7 +996,9 @@ function simulateToaRaid(activityData, options, rng) {
       totalGeValue += addRowLoot(collected, notableDrops, threadRow, 1, killsCompleted, { sectionOverride: "Tertiary rewards" });
     }
     if (jewelRows.length && rng() <= jewelChance) {
-      const pickedJewel = jewelRows[Math.floor(rng() * jewelRows.length)];
+      const availableJewels = jewelRows.filter((row) => !ownedJewels.has(row.item_slug));
+      const jewelPool = availableJewels.length ? availableJewels : jewelRows;
+      const pickedJewel = jewelPool[Math.floor(rng() * jewelPool.length)];
       totalGeValue += addRowLoot(collected, notableDrops, pickedJewel, 1, killsCompleted, { sectionOverride: "Tertiary rewards" });
     }
     if (eliteClueRow && rng() <= eliteClueChance) {
@@ -1004,6 +1024,7 @@ function simulateToaRaid(activityData, options, rng) {
       receive_chance: receiveChance,
       thread_chance: threadChance,
       jewel_chance_any: jewelChance,
+      owned_jewel_count: ownedJewels.size,
       elite_clue_chance: eliteClueChance,
       pet_chance: petChance,
       restricted_unique_misses: restrictedUniqueMisses,

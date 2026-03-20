@@ -112,10 +112,6 @@
                               <span class="field-label">Timed CM clear</span>
                               <input id="coxTimedCm" type="checkbox">
                             </label>
-                            <label class="toggle-field">
-                              <span class="field-label">Elite CA clue rate</span>
-                              <input id="coxEliteCa" type="checkbox">
-                            </label>
                           </div>
                         </div>
 
@@ -137,10 +133,6 @@
                             <label>
                               <span class="field-label">Completions</span>
                               <input id="toaCompletions" class="text-input" type="number" min="0" value="0">
-                            </label>
-                            <label class="toggle-field">
-                              <span class="field-label">Thread already owned</span>
-                              <input id="toaThreadObtained" type="checkbox">
                             </label>
                           </div>
                         </div>
@@ -177,6 +169,65 @@
                               <input id="tobTimedHm" type="checkbox">
                             </label>
                           </div>
+                        </div>
+                      </div>
+                    </details>
+
+                    <details id="advancedModifiers" class="encounter-settings" hidden>
+                      <summary>Advanced modifiers</summary>
+                      <div class="activity-controls">
+                        <div id="yamaAdvancedControls" class="control-group" hidden>
+                          <p class="field-group-title">Yama account modifiers</p>
+                          <div class="form-grid compact-grid">
+                            <label class="toggle-field">
+                              <span class="field-label">Elite CA clue boost</span>
+                              <input id="yamaEliteCa" type="checkbox">
+                            </label>
+                          </div>
+                          <p class="panel-note">Uses the elite Combat Achievements clue perk for Yama, changing the elite clue roll from 1/30 to 1/28.</p>
+                        </div>
+
+                        <div id="coxAdvancedControls" class="control-group" hidden>
+                          <p class="field-group-title">Chambers account modifiers</p>
+                          <div class="form-grid compact-grid">
+                            <label class="toggle-field">
+                              <span class="field-label">Elite CA clue boost</span>
+                              <input id="coxEliteCa" type="checkbox">
+                            </label>
+                          </div>
+                          <p class="panel-note">Applies the Chambers elite clue boost from the combat achievement reward tier.</p>
+                        </div>
+
+                        <div id="toaAdvancedControls" class="control-group" hidden>
+                          <p class="field-group-title">Tombs account modifiers</p>
+                          <div class="form-grid compact-grid">
+                            <label class="toggle-field">
+                              <span class="field-label">Thread already owned</span>
+                              <input id="toaThreadObtained" type="checkbox">
+                            </label>
+                          </div>
+                          <div class="modifier-block">
+                            <p class="field-label">Owned jewels</p>
+                            <div class="modifier-check-grid">
+                              <label class="toggle-field">
+                                <span class="field-label">Eye of the corruptor</span>
+                                <input id="toaOwnedEye" type="checkbox">
+                              </label>
+                              <label class="toggle-field">
+                                <span class="field-label">Jewel of the sun</span>
+                                <input id="toaOwnedSun" type="checkbox">
+                              </label>
+                              <label class="toggle-field">
+                                <span class="field-label">Breach of the scarab</span>
+                                <input id="toaOwnedScarab" type="checkbox">
+                              </label>
+                              <label class="toggle-field">
+                                <span class="field-label">Jewel of amascut</span>
+                                <input id="toaOwnedAmascut" type="checkbox">
+                              </label>
+                            </div>
+                          </div>
+                          <p class="panel-note">Owned jewels are removed from the available jewel pool until all four are owned, which makes the tertiary jewel rolls closer to a real account state.</p>
                         </div>
                       </div>
                     </details>

@@ -142,12 +142,18 @@ const elements = {
   targetGpValue: document.getElementById("targetGpValue"),
   encounterSettings: document.getElementById("encounterSettings"),
   encounterSettingsSummary: document.querySelector("#encounterSettings summary"),
+  advancedModifiers: document.getElementById("advancedModifiers"),
+  advancedModifiersSummary: document.querySelector("#advancedModifiers summary"),
   clueControls: document.getElementById("clueControls"),
   clueMimicEnabledField: document.getElementById("clueMimicEnabledField"),
   clueMimicEnabled: document.getElementById("clueMimicEnabled"),
   clueMimicAttemptsField: document.getElementById("clueMimicAttemptsField"),
   clueMimicAttempts: document.getElementById("clueMimicAttempts"),
   raidControls: document.getElementById("raidControls"),
+  yamaAdvancedControls: document.getElementById("yamaAdvancedControls"),
+  coxAdvancedControls: document.getElementById("coxAdvancedControls"),
+  toaAdvancedControls: document.getElementById("toaAdvancedControls"),
+  yamaEliteCa: document.getElementById("yamaEliteCa"),
   coxControls: document.getElementById("coxControls"),
   toaControls: document.getElementById("toaControls"),
   tobControls: document.getElementById("tobControls"),
@@ -161,6 +167,10 @@ const elements = {
   toaTeamPoints: document.getElementById("toaTeamPoints"),
   toaCompletions: document.getElementById("toaCompletions"),
   toaThreadObtained: document.getElementById("toaThreadObtained"),
+  toaOwnedEye: document.getElementById("toaOwnedEye"),
+  toaOwnedSun: document.getElementById("toaOwnedSun"),
+  toaOwnedScarab: document.getElementById("toaOwnedScarab"),
+  toaOwnedAmascut: document.getElementById("toaOwnedAmascut"),
   tobTeamSize: document.getElementById("tobTeamSize"),
   tobDeaths: document.getElementById("tobDeaths"),
   tobTeamDeaths: document.getElementById("tobTeamDeaths"),
@@ -317,6 +327,15 @@ function getActivityTileMeta(activity) {
 
 function getClueUiDetails(slug) {
   return CLUE_UI_DETAILS[slug] || null;
+}
+
+function getToaOwnedJewelsFromInputs() {
+  return [
+    elements.toaOwnedEye.checked ? "eye-of-the-corruptor" : null,
+    elements.toaOwnedSun.checked ? "jewel-of-the-sun" : null,
+    elements.toaOwnedScarab.checked ? "breach-of-the-scarab" : null,
+    elements.toaOwnedAmascut.checked ? "jewel-of-amascut" : null,
+  ].filter(Boolean);
 }
 
 function getGpComparisonSampleCount(targetGpValue) {
@@ -891,8 +910,13 @@ function renderSimulationState(activity) {
     elements.targetGpField.hidden = true;
     elements.encounterSettings.hidden = true;
     elements.encounterSettings.open = false;
+    elements.advancedModifiers.hidden = true;
+    elements.advancedModifiers.open = false;
     elements.clueControls.hidden = true;
     elements.raidControls.hidden = true;
+    elements.yamaAdvancedControls.hidden = true;
+    elements.coxAdvancedControls.hidden = true;
+    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = true;
@@ -911,8 +935,13 @@ function renderSimulationState(activity) {
     elements.targetGpField.hidden = false;
     elements.encounterSettings.hidden = true;
     elements.encounterSettings.open = false;
+    elements.advancedModifiers.hidden = true;
+    elements.advancedModifiers.open = false;
     elements.clueControls.hidden = true;
     elements.raidControls.hidden = true;
+    elements.yamaAdvancedControls.hidden = true;
+    elements.coxAdvancedControls.hidden = true;
+    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = disabled;
@@ -932,8 +961,13 @@ function renderSimulationState(activity) {
     elements.targetGpField.hidden = true;
     elements.encounterSettings.hidden = true;
     elements.encounterSettings.open = false;
+    elements.advancedModifiers.hidden = true;
+    elements.advancedModifiers.open = false;
     elements.clueControls.hidden = true;
     elements.raidControls.hidden = true;
+    elements.yamaAdvancedControls.hidden = true;
+    elements.coxAdvancedControls.hidden = true;
+    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = true;
@@ -949,6 +983,7 @@ function renderSimulationState(activity) {
   const rollRange = activity.simulation?.reward_roll_range;
   const disabled = !activity.supported || activity.simulation_disabled;
   const hasEncounterSettings = Boolean(clueTier || raidType);
+  const hasAdvancedModifiers = rootSlug === "yama" || raidType === "cox" || raidType === "toa";
   const hasVariantOptions = (state.selectedActivity?.variants || []).length > 1;
 
   elements.simulateButton.disabled = disabled;
@@ -982,6 +1017,24 @@ function renderSimulationState(activity) {
     elements.encounterSettingsSummary.textContent = summary;
   }
 
+  elements.advancedModifiers.hidden = !hasAdvancedModifiers;
+  if (!hasAdvancedModifiers) {
+    elements.advancedModifiers.open = false;
+  } else {
+    let summary = "Advanced modifiers";
+    if (rootSlug === "yama") {
+      summary = "Advanced modifiers: Yama account perks";
+    } else if (raidType === "cox") {
+      summary = "Advanced modifiers: Chambers account perks";
+    } else if (raidType === "toa") {
+      summary = "Advanced modifiers: Tombs owned rewards";
+    }
+    elements.advancedModifiersSummary.textContent = summary;
+  }
+  elements.yamaAdvancedControls.hidden = rootSlug !== "yama";
+  elements.coxAdvancedControls.hidden = raidType !== "cox";
+  elements.toaAdvancedControls.hidden = raidType !== "toa";
+
   elements.clueControls.hidden = !clueTier;
   elements.clueMimicEnabledField.hidden = rootSlug === "mimic";
   if (clueTier) {
@@ -1010,11 +1063,13 @@ function renderSimulationState(activity) {
     helpText = `Put in a GP target, hit simulate, and the results view will rank ${formatNumber(getGpEligibleActivities().length)} eligible kill-based bosses by median KC in a horizontal chart. Raids, clues, chest runs, wave encounters, and other non-standard reward loops are excluded.`;
   }
   if (!isGpMode && raidType === "cox") {
-    helpText = `${helpText} Open encounter settings to tune point share, CM timing, and clue rate.`;
+    helpText = `${helpText} Open encounter settings to tune point share and CM timing, then use advanced modifiers for account clue perks.`;
   } else if (!isGpMode && raidType === "toa") {
-    helpText = `${helpText} Open encounter settings to set raid level and loot points.`;
+    helpText = `${helpText} Open encounter settings to set raid level and loot points, then use advanced modifiers for owned thread and jewels.`;
   } else if (!isGpMode && raidType === "tob") {
     helpText = `${helpText} Open encounter settings to set team size, deaths, and hard mode timing.`;
+  } else if (!isGpMode && rootSlug === "yama") {
+    helpText = `${helpText} Open advanced modifiers if your account has the elite CA clue boost unlocked.`;
   } else if (!isGpMode && clueUiDetails && rootSlug !== "mimic") {
     helpText = `${helpText} ${clueUiDetails.helpText}`;
   } else if (!isGpMode && rootSlug === "mimic") {
@@ -1089,6 +1144,10 @@ function collectSimulationPayloadAndOptions() {
     }
   }
 
+  if (rootSlug === "yama") {
+    options.yama_elite_ca = elements.yamaEliteCa.checked;
+  }
+
   const raidType = rootSlug ? getRaidType(rootSlug) : null;
   if (raidType === "cox") {
     options.cox_personal_points = Number(elements.coxPersonalPoints.value || 0);
@@ -1101,6 +1160,7 @@ function collectSimulationPayloadAndOptions() {
     options.toa_team_points = Number(elements.toaTeamPoints.value || 0);
     options.toa_completions = Number(elements.toaCompletions.value || 0);
     options.toa_thread_obtained = elements.toaThreadObtained.checked;
+    options.toa_owned_jewels = getToaOwnedJewelsFromInputs();
   } else if (raidType === "tob") {
     options.tob_team_size = Number(elements.tobTeamSize.value || 0);
     options.tob_deaths = Number(elements.tobDeaths.value || 0);
@@ -1166,13 +1226,26 @@ function renderRunSummary() {
     }
 
     const raidType = getRaidType(rootSlug);
+    if (rootSlug === "yama" && options.yama_elite_ca) {
+      cards.push(buildSummaryCard("Elite CA clue", "1/28 enabled"));
+    }
     if (raidType === "cox") {
       cards.push(buildSummaryCard("Your points", formatNumber(options.cox_personal_points)));
       cards.push(buildSummaryCard("Team points", formatNumber(options.cox_group_points)));
+      if (options.cox_elite_ca) {
+        cards.push(buildSummaryCard("Elite CA clue", "Enabled"));
+      }
     } else if (raidType === "toa") {
       cards.push(buildSummaryCard("Raid level", formatNumber(options.toa_raid_level)));
       cards.push(buildSummaryCard("Your loot points", formatNumber(options.toa_personal_points)));
       cards.push(buildSummaryCard("Team loot points", formatNumber(options.toa_team_points)));
+      if (options.toa_thread_obtained) {
+        cards.push(buildSummaryCard("Thread status", "Already owned"));
+      }
+      const ownedJewels = options.toa_owned_jewels || [];
+      if (ownedJewels.length) {
+        cards.push(buildSummaryCard("Owned jewels", `${ownedJewels.length} / 4`));
+      }
     } else if (raidType === "tob") {
       cards.push(buildSummaryCard("Team size", formatNumber(options.tob_team_size)));
       cards.push(buildSummaryCard("Your deaths", formatNumber(options.tob_deaths)));
@@ -1232,7 +1305,15 @@ function buildResultMeta(result) {
     chips.push(`Purple ${formatPercent(result.raid_context?.unique_chance, 2)}`);
     chips.push(`Your share ${formatPercent(result.raid_context?.receive_chance, 2)}`);
     chips.push(`Thread ${formatPercent(result.raid_context?.thread_chance, 1)}`);
+    if (result.raid_context?.owned_jewel_count) {
+      chips.push(`${formatNumber(result.raid_context.owned_jewel_count)} jewels owned`);
+    }
     chips.push(`Elite clue ${formatPercent(result.raid_context?.elite_clue_chance, 1)}`);
+  } else if (result.yama_context) {
+    chips.push(`Elite clue ${formatPercent(result.yama_context?.elite_clue_chance, 2)}`);
+    if (result.yama_context?.elite_ca_clue_boost) {
+      chips.push("Elite CA clue perk");
+    }
   } else if (result.raid_model === "tob") {
     chips.push(`Your purple ${formatPercent(result.raid_context?.player_unique_chance, 2)}`);
     chips.push(`Team purple ${formatPercent(result.raid_context?.team_unique_chance, 2)}`);
