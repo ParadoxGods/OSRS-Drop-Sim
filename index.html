@@ -19,10 +19,14 @@
             <div class="workspace-column single-pane-column">
               <section class="surface-card workspace-pane-card">
                 <section id="setupStage" class="pane-stage setup-stage">
-                  <div class="mode-switch notebook-tabs" role="tablist" aria-label="Simulation mode">
-                    <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
-                    <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
-                    <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
+                  <div class="mode-guide">
+                    <p class="mode-guide-arrow">&lt;--- choose mode here</p>
+                    <div class="mode-switch notebook-tabs" role="tablist" aria-label="Simulation mode">
+                      <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
+                      <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
+                      <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
+                    </div>
+                    <p class="mode-guide-copy">Pick a mode to change the settings shown below.</p>
                   </div>
 
                   <div class="review-card-header">
