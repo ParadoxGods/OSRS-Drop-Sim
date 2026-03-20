@@ -134,6 +134,35 @@ function addRowLoot(collection, notableDrops, row, quantity, killCount, extra = 
   return totalGe;
 }
 
+function getSimulationMode(options) {
+  const targetGpValue = Math.max(0, Number(options.target_gp_value) || 0);
+  if (targetGpValue > 0) {
+    return "gp";
+  }
+  if (options.target_item_slug !== null && options.target_item_slug !== undefined && options.target_item_slug !== "") {
+    return "target";
+  }
+  return "fixed";
+}
+
+function getSimulationLimit(options) {
+  if (getSimulationMode(options) === "fixed") {
+    return Math.max(0, Number(options.kills) || 0);
+  }
+  return Math.max(1, Number(options.max_chase_kills) || 25000000);
+}
+
+function hasReachedSimulationGoal(collected, totalGeValue, options) {
+  const mode = getSimulationMode(options);
+  if (mode === "target") {
+    return (collected.get(options.target_item_slug)?.quantity || 0) >= (options.target_count || 1);
+  }
+  if (mode === "gp") {
+    return totalGeValue >= Math.max(1, Number(options.target_gp_value) || 0);
+  }
+  return false;
+}
+
 function finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, extra = {}) {
   const totals = Array.from(collected.values()).sort((a, b) => {
     if (b.total_ge_value !== a.total_ge_value) {
@@ -145,15 +174,17 @@ function finalizeSimulationResult(activityData, simulation, collected, notableDr
     return a.item_name.localeCompare(b.item_name);
   });
 
-  const fixedMode = options.target_item_slug === null || options.target_item_slug === undefined || options.target_item_slug === "";
+  const mode = getSimulationMode(options);
 
   return {
-    mode: fixedMode ? "fixed" : "target",
+    mode,
     kills_requested: options.kills,
     kills_completed: killsCompleted,
     target_item_slug: options.target_item_slug || null,
-    target_count: fixedMode ? null : options.target_count || 1,
-    target_reached: fixedMode ? null : (collected.get(options.target_item_slug)?.quantity || 0) >= (options.target_count || 1),
+    target_count: mode === "target" ? options.target_count || 1 : null,
+    target_reached: mode === "target" ? (collected.get(options.target_item_slug)?.quantity || 0) >= (options.target_count || 1) : null,
+    target_gp_value: mode === "gp" ? Math.max(1, Number(options.target_gp_value) || 0) : null,
+    target_gp_reached: mode === "gp" ? totalGeValue >= Math.max(1, Number(options.target_gp_value) || 0) : null,
     seed: options.seed,
     total_ge_value: totalGeValue,
     distinct_items: totals.length,
@@ -495,19 +526,16 @@ function simulateMimicActivity(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const fixedMode = !options.target_item_slug;
-  const limit = fixedMode ? Math.max(0, Number(options.kills) || 0) : Math.max(1, Number(options.max_chase_kills) || 25000000);
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
   const attemptCount = getMimicAttemptCount(tier, options.clue_mimic_attempts ?? options.mimic_attempts);
 
   while (killsCompleted < limit) {
     killsCompleted += 1;
     totalGeValue += rollMimicRewardBundle(activityData, collected, notableDrops, tier, attemptCount, killsCompleted, `${tier} mimic`, rng);
 
-    if (!fixedMode) {
-      const found = collected.get(options.target_item_slug)?.quantity || 0;
-      if (found >= (options.target_count || 1)) {
-        break;
-      }
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
     }
   }
 
@@ -700,7 +728,7 @@ function simulateCoxRaid(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 25000000) : Math.max(0, Number(options.kills) || 0);
+  const limit = getSimulationLimit(options);
   const uniqueRows = getRowsFromSection(activityData, "Unique drop table");
   const mainRows = getRowsFromSection(activityData, "Main pool");
   const personalPoints = options.cox_personal_points ?? options.coxPersonalPoints ?? 30000;
@@ -753,11 +781,8 @@ function simulateCoxRaid(activityData, options, rng) {
       }
     }
 
-    if (options.target_item_slug) {
-      const found = collected.get(options.target_item_slug)?.quantity || 0;
-      if (found >= (options.target_count || 1)) {
-        break;
-      }
+    if (getSimulationMode(options) !== "fixed" && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
     }
   }
 
@@ -780,7 +805,7 @@ function simulateToaRaid(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 25000000) : Math.max(0, Number(options.kills) || 0);
+  const limit = getSimulationLimit(options);
   const commonRows = getRowsFromSection(activityData, "Common rewards");
   const raidLevel = options.toa_raid_level ?? options.toaRaidLevel ?? 300;
   const personalPoints = options.toa_personal_points ?? options.toaPersonalPoints ?? 15000;
@@ -846,11 +871,8 @@ function simulateToaRaid(activityData, options, rng) {
       totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary rewards" });
     }
 
-    if (options.target_item_slug) {
-      const found = collected.get(options.target_item_slug)?.quantity || 0;
-      if (found >= (options.target_count || 1)) {
-        break;
-      }
+    if (getSimulationMode(options) !== "fixed" && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
     }
   }
 
@@ -878,7 +900,7 @@ function simulateTobRaid(activityData, options, rng) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const limit = options.target_item_slug ? Math.max(1, Number(options.max_chase_kills) || 25000000) : Math.max(0, Number(options.kills) || 0);
+  const limit = getSimulationLimit(options);
   const uniqueRows = getRowsFromSection(activityData, String((activityData.simulation?.exclusive_sections || [])[0]?.label || "Normal mode"));
   const context = calculateTobContext(activityData, options);
   const commonRows = TOB_COMMON_TABLE;
@@ -910,11 +932,8 @@ function simulateTobRaid(activityData, options, rng) {
       }
     }
 
-    if (options.target_item_slug) {
-      const found = collected.get(options.target_item_slug)?.quantity || 0;
-      if (found >= (options.target_count || 1)) {
-        break;
-      }
+    if (getSimulationMode(options) !== "fixed" && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
     }
   }
 
@@ -943,6 +962,7 @@ export function simulateActivity(activityData, options = {}) {
     seed = null,
     target_item_slug: targetItemSlug = null,
     target_count: targetCount = 1,
+    target_gp_value: targetGpValue = null,
     max_chase_kills: maxChaseKills = 25000000,
   } = options;
 
@@ -987,8 +1007,8 @@ export function simulateActivity(activityData, options = {}) {
   const notableDrops = [];
   let totalGeValue = 0;
   let killsCompleted = 0;
-  const fixedMode = targetItemSlug === null || targetItemSlug === undefined || targetItemSlug === "";
-  const limit = fixedMode ? kills : maxChaseKills;
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
 
   while (killsCompleted < limit) {
     killsCompleted += 1;
@@ -1059,38 +1079,19 @@ export function simulateActivity(activityData, options = {}) {
       totalGeValue += rollMimicRewardBundle(activityData, collected, notableDrops, mimicTier, clueMimicAttempts, killsCompleted, "Mimic bonus", rng);
     }
 
-    if (!fixedMode) {
-      const found = collected.get(targetItemSlug)?.quantity || 0;
-      if (found >= targetCount) {
-        break;
-      }
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
     }
   }
 
-  const totals = Array.from(collected.values()).sort((a, b) => {
-    if (b.total_ge_value !== a.total_ge_value) {
-      return b.total_ge_value - a.total_ge_value;
-    }
-    if (b.quantity !== a.quantity) {
-      return b.quantity - a.quantity;
-    }
-    return a.item_name.localeCompare(b.item_name);
-  });
-
-  return {
-    mode: fixedMode ? "fixed" : "target",
-    kills_requested: kills,
-    kills_completed: killsCompleted,
-    target_item_slug: targetItemSlug,
-    target_count: fixedMode ? null : targetCount,
-    target_reached: fixedMode ? null : (collected.get(targetItemSlug)?.quantity || 0) >= targetCount,
+  return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, {
+    kills,
     seed,
-    total_ge_value: totalGeValue,
-    distinct_items: totals.length,
-    totals: totals.slice(0, 150),
-    top_items: totals.slice(0, 12),
-    notable_drops: notableDrops,
-    note: simulation.note,
+    target_item_slug: targetItemSlug,
+    target_count: targetCount,
+    target_gp_value: targetGpValue,
+    max_chase_kills: maxChaseKills,
+  }, {
     clue_context: clueMimicEnabled
       ? {
           mimic_enabled: true,
@@ -1098,5 +1099,5 @@ export function simulateActivity(activityData, options = {}) {
           mimic_attempts: clueMimicAttempts,
         }
       : undefined,
-  };
+  });
 }

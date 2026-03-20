@@ -33,6 +33,23 @@ const TOB_COMMON_ROWS = [
 ];
 
 const MAX_SIM_CAP = 25000000;
+const GP_COMPARISON_SAMPLE_COUNT = 3;
+const GP_COMPARISON_SAMPLE_COUNT_HIGH_VALUE = 2;
+const GP_COMPARISON_SAMPLE_COUNT_ULTRA_VALUE = 1;
+const GP_COMPARISON_HIGH_VALUE_THRESHOLD = 250000000;
+const GP_COMPARISON_ULTRA_VALUE_THRESHOLD = 1000000000;
+const GP_MODE_EXCLUDED_SLUGS = new Set([
+  "barrows-chests",
+  "lunar-chests",
+  "the-gauntlet",
+  "the-corrupted-gauntlet",
+  "tempoross",
+  "wintertodt",
+  "zalcano",
+  "tztok-jad",
+  "tzkal-zuk",
+]);
+const activityCache = new Map();
 
 const EXCLUDED_REFERENCE_SLUGS = new Set([
   "dark-journal",
@@ -100,6 +117,7 @@ const elements = {
   simulationResults: document.getElementById("simulationResults"),
   modeFixedButton: document.getElementById("modeFixedButton"),
   modeTargetButton: document.getElementById("modeTargetButton"),
+  modeGpButton: document.getElementById("modeGpButton"),
   variantField: document.getElementById("variantField"),
   variantSelect: document.getElementById("variantSelect"),
   killsField: document.getElementById("killsField"),
@@ -108,6 +126,8 @@ const elements = {
   targetItem: document.getElementById("targetItem"),
   targetCountField: document.getElementById("targetCountField"),
   targetCount: document.getElementById("targetCount"),
+  targetGpField: document.getElementById("targetGpField"),
+  targetGpValue: document.getElementById("targetGpValue"),
   encounterSettings: document.getElementById("encounterSettings"),
   encounterSettingsSummary: document.querySelector("#encounterSettings summary"),
   clueControls: document.getElementById("clueControls"),
@@ -226,6 +246,11 @@ function clampRuns(value) {
   return Math.min(MAX_SIM_CAP, Math.max(1, numeric));
 }
 
+function clampGpTarget(value) {
+  const numeric = Math.floor(Number(value) || 0);
+  return Math.max(1, numeric);
+}
+
 function assetUrl(path) {
   if (!path) {
     return "";
@@ -282,6 +307,34 @@ function getClueUiDetails(slug) {
   return CLUE_UI_DETAILS[slug] || null;
 }
 
+function getGpComparisonSampleCount(targetGpValue) {
+  const value = Math.max(0, Number(targetGpValue) || 0);
+  if (value >= GP_COMPARISON_ULTRA_VALUE_THRESHOLD) {
+    return GP_COMPARISON_SAMPLE_COUNT_ULTRA_VALUE;
+  }
+  if (value >= GP_COMPARISON_HIGH_VALUE_THRESHOLD) {
+    return GP_COMPARISON_SAMPLE_COUNT_HIGH_VALUE;
+  }
+  return GP_COMPARISON_SAMPLE_COUNT;
+}
+
+function isGpComparisonEligible(activity) {
+  if (!activity?.supported || activity?.simulation_disabled) {
+    return false;
+  }
+  if (activity.slug?.startsWith("clue-scrolls-") || activity.slug === "mimic") {
+    return false;
+  }
+  if (getRaidType(activity.slug)) {
+    return false;
+  }
+  return !GP_MODE_EXCLUDED_SLUGS.has(activity.slug);
+}
+
+function getGpEligibleActivities() {
+  return state.activities.filter(isGpComparisonEligible);
+}
+
 function matchesActivityFilter(activity, query) {
   if (!query) {
     return true;
@@ -305,6 +358,15 @@ async function getJson(url) {
     throw new Error(`Request failed: ${response.status}`);
   }
   return response.json();
+}
+
+async function loadActivityData(slug) {
+  if (activityCache.has(slug)) {
+    return activityCache.get(slug);
+  }
+  const activity = await getJson(`./data/activities/${slug}.json`);
+  activityCache.set(slug, activity);
+  return activity;
 }
 
 function getRenderableRows(activity) {
@@ -467,7 +529,7 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
 
   const sourceHref = view?.wiki_url || activity.wiki_url || "#";
   elements.sourceLink.href = sourceHref;
-  elements.sourceLink.hidden = !sourceHref || sourceHref === "#";
+  elements.sourceLink.hidden = state.simulationMode === "gp" || !sourceHref || sourceHref === "#";
 
   if (activity.activity_image_path) {
     elements.activityImage.src = assetUrl(activity.activity_image_path);
@@ -478,7 +540,7 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
   }
 }
 
-function setSimulationLoading(message) {
+function setSimulationLoading(message, detail = "Rolling rewards and assembling the final loot review.") {
   setRunButtonState(true);
   elements.simulationResults.classList.add("is-loading");
   elements.simulationResults.innerHTML = `
@@ -486,7 +548,7 @@ function setSimulationLoading(message) {
       <div class="spinner" aria-hidden="true"></div>
       <div class="loading-copy">
         <strong>${escapeHtml(message)}</strong>
-        <span class="subtle">Rolling rewards and assembling the final loot review.</span>
+        <span class="subtle">${escapeHtml(detail)}</span>
       </div>
       <div class="loading-bars" aria-hidden="true">
         <span></span>
@@ -514,42 +576,51 @@ function renderTargetOptions(activity) {
 }
 
 function setSimulationMode(mode) {
-  state.simulationMode = mode === "target" ? "target" : "fixed";
+  state.simulationMode = ["fixed", "target", "gp"].includes(mode) ? mode : "fixed";
+  const isFixedMode = state.simulationMode === "fixed";
   const isTargetMode = state.simulationMode === "target";
-  elements.modeFixedButton.classList.toggle("is-active", !isTargetMode);
+  const isGpMode = state.simulationMode === "gp";
+  elements.modeFixedButton.classList.toggle("is-active", isFixedMode);
   elements.modeTargetButton.classList.toggle("is-active", isTargetMode);
-  elements.modeFixedButton.setAttribute("aria-selected", String(!isTargetMode));
+  elements.modeGpButton.classList.toggle("is-active", isGpMode);
+  elements.modeFixedButton.setAttribute("aria-selected", String(isFixedMode));
   elements.modeTargetButton.setAttribute("aria-selected", String(isTargetMode));
-  elements.killsField.hidden = isTargetMode;
+  elements.modeGpButton.setAttribute("aria-selected", String(isGpMode));
+  elements.killsField.hidden = !isFixedMode;
   elements.targetItemField.hidden = !isTargetMode;
   elements.targetCountField.hidden = !isTargetMode;
+  elements.targetGpField.hidden = !isGpMode;
 
   if (state.selectedActivity) {
-    renderSimulationState(getActiveActivityView(state.selectedActivity));
-    renderRunSummary();
+    refreshSelectedActivityView(false);
   }
 }
 
 function renderSimulationState(activity) {
   const rootSlug = state.selectedActivity.slug;
-  const disabled = !activity.supported || activity.simulation_disabled;
   const raidType = getRaidType(rootSlug);
   const clueTier = getEffectiveClueTier(rootSlug, activity);
   const clueUiDetails = getClueUiDetails(rootSlug);
   const rollRange = activity.simulation?.reward_roll_range;
+  const isFixedMode = state.simulationMode === "fixed";
   const isTargetMode = state.simulationMode === "target";
-  const hasEncounterSettings = Boolean(clueTier || raidType);
+  const isGpMode = state.simulationMode === "gp";
+  const disabled = isGpMode ? getGpEligibleActivities().length === 0 : (!activity.supported || activity.simulation_disabled);
+  const hasEncounterSettings = !isGpMode && Boolean(clueTier || raidType);
 
   elements.simulateButton.disabled = disabled;
-  elements.killsField.hidden = isTargetMode;
+  elements.killsField.hidden = !isFixedMode;
   elements.targetItemField.hidden = !isTargetMode;
   elements.targetCountField.hidden = !isTargetMode;
+  elements.targetGpField.hidden = !isGpMode;
   elements.targetItem.disabled = disabled || !isTargetMode;
   elements.targetCount.disabled = disabled || !isTargetMode;
-  elements.killsInput.disabled = disabled || isTargetMode;
+  elements.targetGpValue.disabled = disabled || !isGpMode;
+  elements.killsInput.disabled = disabled || !isFixedMode;
   elements.killsInput.max = String(MAX_SIM_CAP);
   elements.killsInput.value = String(clampRuns(elements.killsInput.value || 1));
   elements.targetCount.value = String(Math.max(1, Math.floor(Number(elements.targetCount.value || 1))));
+  elements.targetGpValue.value = String(clampGpTarget(elements.targetGpValue.value || 1));
 
   elements.encounterSettings.hidden = !hasEncounterSettings;
   if (!hasEncounterSettings) {
@@ -592,24 +663,29 @@ function renderSimulationState(activity) {
   elements.coxTimedCmField.hidden = rootSlug !== "chambers-of-xeric-challenge-mode";
   elements.tobTimedHmField.hidden = rootSlug !== "theatre-of-blood-hard-mode";
 
-  let helpText = isTargetMode
-    ? `Target mode keeps rolling until the selected item count is reached or the cap of ${formatNumber(MAX_SIM_CAP)} attempts is hit.`
-    : "Attempts mode rolls the selected number of completions and shows the final end-state loot.";
-  if (raidType === "cox") {
+  let helpText = "Attempts mode rolls the selected number of completions and shows the final end-state loot.";
+  if (isTargetMode) {
+    helpText = `Target mode keeps rolling until the selected item count is reached or the cap of ${formatNumber(MAX_SIM_CAP)} attempts is hit.`;
+  } else if (isGpMode) {
+    helpText = `GP target mode compares ${formatNumber(getGpEligibleActivities().length)} kill-based bosses and ranks the median simulated KC needed to reach ${formatNumber(clampGpTarget(elements.targetGpValue.value || 1))} gp. Raids, clues, chest runs, wave encounters, and other non-standard kill loops are excluded.`;
+  }
+  if (!isGpMode && raidType === "cox") {
     helpText = `${helpText} Open encounter settings to tune point share, CM timing, and clue rate.`;
-  } else if (raidType === "toa") {
+  } else if (!isGpMode && raidType === "toa") {
     helpText = `${helpText} Open encounter settings to set raid level and loot points.`;
-  } else if (raidType === "tob") {
+  } else if (!isGpMode && raidType === "tob") {
     helpText = `${helpText} Open encounter settings to set team size, deaths, and hard mode timing.`;
-  } else if (clueUiDetails && rootSlug !== "mimic") {
+  } else if (!isGpMode && clueUiDetails && rootSlug !== "mimic") {
     helpText = `${helpText} ${clueUiDetails.helpText}`;
-  } else if (rootSlug === "mimic") {
+  } else if (!isGpMode && rootSlug === "mimic") {
     helpText = `${helpText} ${CLUE_UI_DETAILS.mimic.helpText} Open encounter settings to adjust the Mimic attempts used.`;
-  } else if (rollRange) {
+  } else if (!isGpMode && rollRange) {
     helpText = `${helpText} This activity rolls ${rollRange.min}-${rollRange.max} reward slots per completion.`;
   }
 
-  elements.simulationHelp.textContent = disabled ? activity.note || "Simulation is not available for this activity." : helpText;
+  elements.simulationHelp.textContent = disabled
+    ? (isGpMode ? "No eligible kill-based bosses are available for GP comparison." : activity.note || "Simulation is not available for this activity.")
+    : helpText;
 }
 
 function buildSummaryCard(label, value) {
@@ -655,9 +731,10 @@ function collectSimulationPayloadAndOptions() {
   }
 
   const options = {
-    kills: state.simulationMode === "target" ? 1 : clampRuns(elements.killsInput.value || 1),
+    kills: state.simulationMode === "fixed" ? clampRuns(elements.killsInput.value || 1) : 1,
     target_item_slug: state.simulationMode === "target" ? elements.targetItem.value || null : null,
     target_count: state.simulationMode === "target" ? Math.max(1, Math.floor(Number(elements.targetCount.value || 1))) : 1,
+    target_gp_value: state.simulationMode === "gp" ? clampGpTarget(elements.targetGpValue.value || 1) : null,
     max_chase_kills: MAX_SIM_CAP,
   };
 
@@ -702,50 +779,57 @@ function renderRunSummary() {
   }
 
   const { activityView, rootSlug, options } = data;
+  const isGpMode = state.simulationMode === "gp";
   const cards = [
-    buildSummaryCard("Activity", state.selectedActivity.name),
-    state.selectedVariantId ? buildSummaryCard("Variant", activityView.label || state.selectedVariantId) : "",
-    buildSummaryCard("Mode", state.simulationMode === "target" ? "Target chase" : "Attempts"),
+    buildSummaryCard(isGpMode ? "Scope" : "Activity", isGpMode ? "All eligible bosses" : state.selectedActivity.name),
+    state.selectedVariantId && !isGpMode ? buildSummaryCard("Variant", activityView.label || state.selectedVariantId) : "",
+    buildSummaryCard("Mode", state.simulationMode === "target" ? "Target chase" : (isGpMode ? "GP target" : "Attempts")),
   ];
 
   if (state.simulationMode === "target") {
     cards.push(buildSummaryCard("Target", elements.targetItem.selectedOptions[0]?.textContent || "Choose an item"));
     cards.push(buildSummaryCard("Target count", formatNumber(options.target_count)));
     cards.push(buildSummaryCard("Chase cap", formatNumber(MAX_SIM_CAP)));
+  } else if (isGpMode) {
+    cards.push(buildSummaryCard("Target value", `${formatShortValue(options.target_gp_value || 0)} gp`));
+    cards.push(buildSummaryCard("Boss pool", formatNumber(getGpEligibleActivities().length)));
+    cards.push(buildSummaryCard("Kill cap", formatNumber(MAX_SIM_CAP)));
   } else {
     cards.push(buildSummaryCard("Attempts", formatNumber(options.kills)));
   }
 
-  const clueUiDetails = getClueUiDetails(rootSlug);
-  if (clueUiDetails?.rewardRolls) {
-    cards.push(buildSummaryCard("Reward rolls", clueUiDetails.rewardRolls));
-  }
-  if (clueUiDetails?.tertiary) {
-    cards.push(buildSummaryCard("Extra roll", clueUiDetails.tertiary));
-  }
+  if (!isGpMode) {
+    const clueUiDetails = getClueUiDetails(rootSlug);
+    if (clueUiDetails?.rewardRolls) {
+      cards.push(buildSummaryCard("Reward rolls", clueUiDetails.rewardRolls));
+    }
+    if (clueUiDetails?.tertiary) {
+      cards.push(buildSummaryCard("Extra roll", clueUiDetails.tertiary));
+    }
 
-  if (rootSlug === "mimic" || rootSlug === "clue-scrolls-elite" || rootSlug === "clue-scrolls-master") {
-    cards.push(buildSummaryCard("Mimic attempt", formatNumber(options.clue_mimic_attempts || 1)));
-    if (rootSlug !== "mimic") {
-      cards.push(buildSummaryCard("Mimic branch", options.clue_mimic_enabled ? "Enabled" : "Disabled"));
-      if (options.clue_mimic_enabled && clueUiDetails?.mimic) {
-        cards.push(buildSummaryCard("Mimic chance", clueUiDetails.mimic));
+    if (rootSlug === "mimic" || rootSlug === "clue-scrolls-elite" || rootSlug === "clue-scrolls-master") {
+      cards.push(buildSummaryCard("Mimic attempt", formatNumber(options.clue_mimic_attempts || 1)));
+      if (rootSlug !== "mimic") {
+        cards.push(buildSummaryCard("Mimic branch", options.clue_mimic_enabled ? "Enabled" : "Disabled"));
+        if (options.clue_mimic_enabled && clueUiDetails?.mimic) {
+          cards.push(buildSummaryCard("Mimic chance", clueUiDetails.mimic));
+        }
       }
     }
-  }
 
-  const raidType = getRaidType(rootSlug);
-  if (raidType === "cox") {
-    cards.push(buildSummaryCard("Your points", formatNumber(options.cox_personal_points)));
-    cards.push(buildSummaryCard("Team points", formatNumber(options.cox_group_points)));
-  } else if (raidType === "toa") {
-    cards.push(buildSummaryCard("Raid level", formatNumber(options.toa_raid_level)));
-    cards.push(buildSummaryCard("Your loot points", formatNumber(options.toa_personal_points)));
-    cards.push(buildSummaryCard("Team loot points", formatNumber(options.toa_team_points)));
-  } else if (raidType === "tob") {
-    cards.push(buildSummaryCard("Team size", formatNumber(options.tob_team_size)));
-    cards.push(buildSummaryCard("Your deaths", formatNumber(options.tob_deaths)));
-    cards.push(buildSummaryCard("Team deaths", formatNumber(options.tob_team_deaths)));
+    const raidType = getRaidType(rootSlug);
+    if (raidType === "cox") {
+      cards.push(buildSummaryCard("Your points", formatNumber(options.cox_personal_points)));
+      cards.push(buildSummaryCard("Team points", formatNumber(options.cox_group_points)));
+    } else if (raidType === "toa") {
+      cards.push(buildSummaryCard("Raid level", formatNumber(options.toa_raid_level)));
+      cards.push(buildSummaryCard("Your loot points", formatNumber(options.toa_personal_points)));
+      cards.push(buildSummaryCard("Team loot points", formatNumber(options.toa_team_points)));
+    } else if (raidType === "tob") {
+      cards.push(buildSummaryCard("Team size", formatNumber(options.tob_team_size)));
+      cards.push(buildSummaryCard("Your deaths", formatNumber(options.tob_deaths)));
+      cards.push(buildSummaryCard("Team deaths", formatNumber(options.tob_team_deaths)));
+    }
   }
 
   elements.runSummary.innerHTML = cards.filter(Boolean).join("");
@@ -829,6 +913,71 @@ function buildSectionRows(result) {
     sections.set(key, entry);
   });
   return Array.from(sections.values()).sort((a, b) => b.total_ge_value - a.total_ge_value || a.section.localeCompare(b.section));
+}
+
+function buildGpRankRow(entry, index, maxKillsForScale) {
+  const image = entry.activity_image_path ? `<img src="${assetUrl(entry.activity_image_path)}" alt="">` : '<div class="gp-rank-sprite-fallback">?</div>';
+  const fillPercent = entry.capped
+    ? 100
+    : Math.max(8, Math.min(100, ((entry.median_kills || 0) / Math.max(1, maxKillsForScale || 1)) * 100));
+  const killsLabel = entry.capped ? `${formatNumber(MAX_SIM_CAP)}+ kc` : `${formatNumber(entry.median_kills)} kc`;
+  const rangeLabel = entry.min_kills === entry.max_kills
+    ? `Sample ${formatNumber(entry.min_kills)}`
+    : `Range ${formatNumber(entry.min_kills)}-${formatNumber(entry.max_kills)}`;
+
+  return `
+    <article class="gp-rank-row${entry.capped ? " is-capped" : ""}">
+      <div class="gp-rank-heading">
+        <span class="gp-rank-position">${formatNumber(index + 1)}</span>
+        <div class="gp-rank-sprite">${image}</div>
+        <div class="gp-rank-copy">
+          <strong>${escapeHtml(entry.name)}</strong>
+          <span>${escapeHtml(rangeLabel)} · ${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill</span>
+        </div>
+        <div class="gp-rank-kc">${escapeHtml(killsLabel)}</div>
+      </div>
+      <div class="gp-rank-bar">
+        <span class="gp-rank-fill" style="width: ${fillPercent.toFixed(2)}%"></span>
+      </div>
+    </article>
+  `;
+}
+
+function renderGpComparisonResults(result) {
+  elements.simulationResults.classList.remove("is-loading");
+  const rankings = result.rankings || [];
+  const best = rankings[0] || null;
+  const uncapped = rankings.filter((entry) => !entry.capped);
+  const scaleMax = (uncapped.length ? uncapped[uncapped.length - 1].median_kills : (rankings.length ? rankings[rankings.length - 1].median_kills : 1)) || 1;
+  const chartRows = rankings
+    .map((entry, index) => buildGpRankRow(entry, index, scaleMax))
+    .join("");
+
+  elements.simulationResults.innerHTML = `
+    <div class="results-shell gp-results-shell">
+      <div class="metric-grid">
+        ${buildMetricCard("Target value", `${formatShortValue(result.target_gp_value || 0)} gp`, true)}
+        ${buildMetricCard("Bosses ranked", formatNumber(result.boss_count || rankings.length))}
+        ${buildMetricCard("Samples / boss", formatNumber(result.sample_count || 0))}
+        ${buildMetricCard("Fastest median", best ? `${formatNumber(best.median_kills)} kc` : "N/A")}
+      </div>
+
+      <div class="review-note">
+        <strong>GP comparison mode</strong>
+        <span>Ranked by median simulated KC to the target GP value. Only standard kill-based bosses are included.</span>
+      </div>
+
+      <div class="review-card gp-chart-card">
+        <div class="review-card-header">
+          <h3>Boss KC ranking</h3>
+          <span class="subtle">Lowest simulated KC first, highest last</span>
+        </div>
+        <div class="gp-rank-list">
+          ${chartRows || '<div class="results-empty">No eligible bosses were available for GP comparison.</div>'}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderSimulationResults(result) {
@@ -1028,6 +1177,72 @@ function setResultsTab(tabId) {
   });
 }
 
+async function runGpComparison(targetGpValue) {
+  const eligibleActivities = getGpEligibleActivities().sort((a, b) => a.name.localeCompare(b.name));
+  const sampleCount = getGpComparisonSampleCount(targetGpValue);
+  const rankings = [];
+
+  for (let index = 0; index < eligibleActivities.length; index += 1) {
+    const summary = eligibleActivities[index];
+    setSimulationLoading(
+      `Comparing bosses ${formatNumber(index + 1)} / ${formatNumber(eligibleActivities.length)}...`,
+      `Running ${formatNumber(sampleCount)} simulated GP chase${sampleCount === 1 ? "" : "s"} per boss and ranking the median KC.`,
+    );
+
+    const activity = await loadActivityData(summary.slug);
+    const samples = [];
+    let totalKills = 0;
+    let totalValue = 0;
+
+    for (let sampleIndex = 0; sampleIndex < sampleCount; sampleIndex += 1) {
+      const result = simulateActivity(activity, {
+        kills: 1,
+        target_gp_value: targetGpValue,
+        max_chase_kills: MAX_SIM_CAP,
+        seed: `gp:${summary.slug}:${targetGpValue}:${sampleIndex}`,
+      });
+      samples.push(result.kills_completed || 0);
+      totalKills += result.kills_completed || 0;
+      totalValue += result.total_ge_value || 0;
+    }
+
+    samples.sort((a, b) => a - b);
+    const medianKills = samples[Math.floor(samples.length / 2)] || MAX_SIM_CAP;
+    rankings.push({
+      slug: summary.slug,
+      name: summary.name,
+      activity_image_path: summary.activity_image_path || activity.activity_image_path || null,
+      median_kills: medianKills,
+      min_kills: samples[0] || medianKills,
+      max_kills: samples[samples.length - 1] || medianKills,
+      avg_gp_per_kill: totalKills > 0 ? Math.round(totalValue / totalKills) : 0,
+      capped: medianKills >= MAX_SIM_CAP,
+    });
+
+    if ((index + 1) % 4 === 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, 0));
+    }
+  }
+
+  rankings.sort((a, b) => {
+    if (a.capped !== b.capped) {
+      return a.capped ? 1 : -1;
+    }
+    if (a.median_kills !== b.median_kills) {
+      return a.median_kills - b.median_kills;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    mode: "gp",
+    target_gp_value: targetGpValue,
+    boss_count: rankings.length,
+    sample_count: sampleCount,
+    rankings,
+  };
+}
+
 async function selectActivity(slug) {
   state.selectedSlug = slug;
   renderActivityGrid();
@@ -1037,7 +1252,7 @@ async function selectActivity(slug) {
   renderPlaceholderResults("Run simulation to see the loot review.");
 
   try {
-    const activity = await getJson(`./data/activities/${slug}.json`);
+    const activity = await loadActivityData(slug);
     state.selectedActivity = activity;
     elements.encounterSettings.open = false;
     renderVariantSelector(activity);
@@ -1095,6 +1310,10 @@ elements.modeTargetButton.addEventListener("click", () => {
   setSimulationMode("target");
 });
 
+elements.modeGpButton.addEventListener("click", () => {
+  setSimulationMode("gp");
+});
+
 ["input", "change"].forEach((eventName) => {
   elements.simulationForm.addEventListener(eventName, (event) => {
     if (event.target === elements.simulateButton) {
@@ -1110,6 +1329,12 @@ elements.modeTargetButton.addEventListener("click", () => {
       const cleaned = Math.max(1, Math.floor(Number(elements.targetCount.value || 1)));
       if (String(cleaned) !== elements.targetCount.value && eventName === "change") {
         elements.targetCount.value = String(cleaned);
+      }
+    }
+    if (event.target === elements.targetGpValue) {
+      const cleaned = clampGpTarget(elements.targetGpValue.value || 1);
+      if (String(cleaned) !== elements.targetGpValue.value && eventName === "change") {
+        elements.targetGpValue.value = String(cleaned);
       }
     }
     if (state.selectedActivity) {
@@ -1142,14 +1367,28 @@ elements.simulationForm.addEventListener("submit", async (event) => {
     elements.targetItem.focus();
     return;
   }
+  if (state.simulationMode === "gp" && !(data.options.target_gp_value > 0)) {
+    elements.simulationHelp.textContent = "Enter a GP target before running the boss comparison.";
+    elements.targetGpValue.focus();
+    return;
+  }
   const { payload, options } = data;
 
-  setSimulationLoading("Rolling loot...");
+  if (state.simulationMode === "gp") {
+    setSimulationLoading("Preparing boss comparison...", "Loading eligible boss data and setting up the GP chase ranking.");
+  } else {
+    setSimulationLoading("Rolling loot...");
+  }
   await new Promise((resolve) => window.setTimeout(resolve, 220));
 
   try {
-    const result = simulateActivity(payload, options);
-    renderSimulationResults(result);
+    if (state.simulationMode === "gp") {
+      const result = await runGpComparison(options.target_gp_value);
+      renderGpComparisonResults(result);
+    } else {
+      const result = simulateActivity(payload, options);
+      renderSimulationResults(result);
+    }
   } catch (error) {
     renderPlaceholderResults(error.message || "Simulation failed.");
   } finally {
