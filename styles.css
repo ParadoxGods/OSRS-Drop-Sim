@@ -163,7 +163,6 @@ select {
 }
 
 .section-heading,
-.config-lead,
 .review-card-header,
 .loading-copy,
 .review-note {
@@ -182,6 +181,7 @@ select {
 }
 
 .activity-card {
+  align-content: start;
   gap: 10px;
 }
 
@@ -189,7 +189,7 @@ select {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
   gap: 10px;
-  align-items: start;
+  align-items: center;
 }
 
 .activity-art {
@@ -225,30 +225,31 @@ select {
   display: none;
 }
 
+.activity-copy {
+  display: grid;
+  align-content: center;
+}
+
 .activity-picker-trigger {
-  width: fit-content;
-  max-width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(12, 18, 24, 0.88);
   color: var(--text);
-  text-align: left;
+  text-align: center;
   font-family: var(--font-display);
-  font-size: clamp(0.96rem, 1.4vw, 1.18rem);
+  font-size: 0.84rem;
   font-weight: 600;
-  line-height: 1.05;
+  line-height: 1;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
-  text-decoration-thickness: 1px;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
 
 .activity-picker-trigger:hover {
+  border-color: rgba(216, 188, 114, 0.38);
+  background: rgba(16, 23, 30, 0.98);
   color: var(--accent-strong);
-}
-
-.activity-picker-hint {
-  font-size: 0.76rem;
 }
 
 .meta-row,
@@ -297,18 +298,6 @@ select {
   align-content: start;
 }
 
-.config-lead {
-  padding: 8px 10px;
-  border: 1px solid var(--panel-border);
-  background: rgba(12, 18, 24, 0.72);
-}
-
-.config-lead strong {
-  font-family: var(--font-display);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
 .mode-switch {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -336,6 +325,10 @@ select {
   background: rgba(216, 188, 114, 0.14);
   color: var(--accent-strong);
   box-shadow: inset 0 0 0 1px var(--panel-border-strong);
+}
+
+.config-card .meta-row {
+  gap: 6px;
 }
 
 .form-grid {

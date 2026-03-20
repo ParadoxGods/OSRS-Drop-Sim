@@ -18,43 +18,33 @@
           <form id="simulationForm" class="sim-form">
             <div class="workspace-column control-column">
               <section class="surface-card activity-card">
-                <div class="section-heading">
-                  <p class="eyebrow">Activity</p>
-                  <span class="subtle">Choose the encounter.</span>
-                </div>
                 <div class="activity-strip">
                   <div class="activity-art">
                     <img id="activityImage" alt="" hidden>
                     <div class="activity-art-fallback">?</div>
                   </div>
                   <div class="activity-copy">
-                    <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select an activity</button>
-                    <p class="activity-picker-hint">Click the encounter name to switch activities.</p>
-                    <div id="activityMeta" class="meta-row"></div>
-                    <div class="source-row">
-                      <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
-                    </div>
-                    <p id="activityNote" class="note" hidden></p>
+                    <button id="activityPickerTrigger" class="activity-picker-trigger" type="button">Select item</button>
                   </div>
+                </div>
+                <div class="mode-switch" role="tablist" aria-label="Simulation mode">
+                  <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
+                  <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
+                  <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
                 </div>
               </section>
 
               <section class="surface-card config-card">
                 <div class="section-heading">
                   <p class="eyebrow">Configuration</p>
-                  <span class="subtle">Set the run inputs.</span>
+                  <span class="subtle">Only the settings for the selected mode are shown.</span>
                 </div>
 
-                <div class="config-lead">
-                  <strong>Set the run up.</strong>
-                  <span>Pick a mode and set only the inputs that matter.</span>
+                <div id="activityMeta" class="meta-row"></div>
+                <div class="source-row">
+                  <a id="sourceLink" class="source-link" href="#" target="_blank" rel="noreferrer">OSRS Wiki source</a>
                 </div>
-
-                <div class="mode-switch" role="tablist" aria-label="Simulation mode">
-                  <button id="modeFixedButton" class="mode-button is-active" type="button" data-sim-mode="fixed">Attempts</button>
-                  <button id="modeTargetButton" class="mode-button" type="button" data-sim-mode="target">Target item</button>
-                  <button id="modeGpButton" class="mode-button" type="button" data-sim-mode="gp">GP target</button>
-                </div>
+                <p id="activityNote" class="note" hidden></p>
 
                 <div class="form-grid primary-config-grid">
                   <label id="variantField" hidden>

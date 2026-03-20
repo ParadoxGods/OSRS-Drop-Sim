@@ -488,30 +488,38 @@ function getActiveActivityView(activity = state.selectedActivity) {
 
 function renderActivityHeader(activity, view = getActiveActivityView(activity)) {
   const label = activity.name || "Select an activity";
-  elements.activityPickerTrigger.textContent = label;
-  elements.activityPickerTrigger.title = `Click ${label} to change the activity`;
-  elements.activityPickerTrigger.setAttribute("aria-label", `Click ${label} to change the activity`);
+  elements.activityPickerTrigger.textContent = "Select item";
+  elements.activityPickerTrigger.title = `Current activity: ${label}. Click to change the activity.`;
+  elements.activityPickerTrigger.setAttribute("aria-label", `Current activity: ${label}. Click to change the activity.`);
 
-  const chips = [
-    getActivityTypeLabel(activity),
-    activity.supported && !activity.simulation_disabled ? "Simulation ready" : "Reference only",
-  ];
+  const chips = state.simulationMode === "gp"
+    ? [
+        "GP comparison",
+        `${formatNumber(getGpEligibleActivities().length)} eligible bosses`,
+        "Kill-based only",
+      ]
+    : [
+        getActivityTypeLabel(activity),
+        activity.supported && !activity.simulation_disabled ? "Simulation ready" : "Reference only",
+      ];
 
-  if (activity.variants?.length) {
-    chips.push(`${activity.variants.length} variants`);
-  }
-  if (view?.simulation?.reward_roll_range) {
-    chips.push(`${view.simulation.reward_roll_range.min}-${view.simulation.reward_roll_range.max} reward rolls`);
-  }
-  if (getRaidType(activity.slug)) {
-    chips.push("Raid-specific reward model");
-  }
-  const clueUiDetails = getClueUiDetails(activity.slug);
-  if (clueUiDetails?.tertiary) {
-    chips.push(clueUiDetails.tertiary);
-  }
-  if (clueUiDetails?.mimic) {
-    chips.push(`Optional ${clueUiDetails.mimic}`);
+  if (state.simulationMode !== "gp") {
+    if (activity.variants?.length) {
+      chips.push(`${activity.variants.length} variants`);
+    }
+    if (view?.simulation?.reward_roll_range) {
+      chips.push(`${view.simulation.reward_roll_range.min}-${view.simulation.reward_roll_range.max} reward rolls`);
+    }
+    if (getRaidType(activity.slug)) {
+      chips.push("Raid-specific reward model");
+    }
+    const clueUiDetails = getClueUiDetails(activity.slug);
+    if (clueUiDetails?.tertiary) {
+      chips.push(clueUiDetails.tertiary);
+    }
+    if (clueUiDetails?.mimic) {
+      chips.push(`Optional ${clueUiDetails.mimic}`);
+    }
   }
 
   elements.activityMeta.innerHTML = chips
@@ -520,10 +528,12 @@ function renderActivityHeader(activity, view = getActiveActivityView(activity)) 
     .join("");
 
   const noteParts = [];
-  if (activity.note) noteParts.push(activity.note);
-  if (view?.note && view.note !== activity.note) noteParts.push(view.note);
-  if (view?.simulation?.note && view.simulation.note !== activity.simulation?.note) noteParts.push(view.simulation.note);
-  if (!noteParts.length && activity.simulation?.note) noteParts.push(activity.simulation.note);
+  if (state.simulationMode !== "gp") {
+    if (activity.note) noteParts.push(activity.note);
+    if (view?.note && view.note !== activity.note) noteParts.push(view.note);
+    if (view?.simulation?.note && view.simulation.note !== activity.simulation?.note) noteParts.push(view.simulation.note);
+    if (!noteParts.length && activity.simulation?.note) noteParts.push(activity.simulation.note);
+  }
   elements.activityNote.textContent = noteParts.join(" ");
   elements.activityNote.hidden = !elements.activityNote.textContent;
 
@@ -607,8 +617,10 @@ function renderSimulationState(activity) {
   const isGpMode = state.simulationMode === "gp";
   const disabled = isGpMode ? getGpEligibleActivities().length === 0 : (!activity.supported || activity.simulation_disabled);
   const hasEncounterSettings = !isGpMode && Boolean(clueTier || raidType);
+  const hasVariantOptions = (state.selectedActivity?.variants || []).length > 1;
 
   elements.simulateButton.disabled = disabled;
+  elements.variantField.hidden = isGpMode || !hasVariantOptions;
   elements.killsField.hidden = !isFixedMode;
   elements.targetItemField.hidden = !isTargetMode;
   elements.targetCountField.hidden = !isTargetMode;
