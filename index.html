@@ -172,6 +172,105 @@
                           </div>
                         </div>
                       </div>
+
+                      <div id="groupBossControls" class="activity-controls" hidden>
+                        <div id="nexControls" class="control-group" hidden>
+                          <p class="field-group-title">Nex</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Team size</span>
+                              <input id="nexTeamSize" class="text-input" type="number" min="1" max="60" value="1">
+                            </label>
+                            <label>
+                              <span class="field-label">Your contribution %</span>
+                              <input id="nexContribution" class="text-input" type="number" min="0" max="100" value="100">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">You were MVP</span>
+                              <input id="nexMvp" type="checkbox">
+                            </label>
+                          </div>
+                        </div>
+
+                        <div id="nightmareControls" class="control-group" hidden>
+                          <p class="field-group-title">The Nightmare</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Team size</span>
+                              <input id="nightmareTeamSize" class="text-input" type="number" min="1" max="80" value="1">
+                            </label>
+                            <label>
+                              <span class="field-label">Your contribution %</span>
+                              <input id="nightmareContribution" class="text-input" type="number" min="0" max="100" value="100">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">You were MVP</span>
+                              <input id="nightmareMvp" type="checkbox">
+                            </label>
+                          </div>
+                        </div>
+
+                        <div id="hueyControls" class="control-group" hidden>
+                          <p class="field-group-title">The Hueycoatl</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Team size</span>
+                              <input id="hueyTeamSize" class="text-input" type="number" min="1" max="20" value="1">
+                            </label>
+                            <label>
+                              <span class="field-label">Your contribution %</span>
+                              <input id="hueyContribution" class="text-input" type="number" min="0" max="100" value="100">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">You were MVP</span>
+                              <input id="hueyMvp" type="checkbox">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">Met body-damage check</span>
+                              <input id="hueyBodyDamage" type="checkbox" checked>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div id="royalTitansControls" class="control-group" hidden>
+                          <p class="field-group-title">Royal Titans</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Your contribution %</span>
+                              <input id="royalTitansContribution" class="text-input" type="number" min="0" max="100" value="100">
+                            </label>
+                            <label>
+                              <span class="field-label">Looted titan</span>
+                              <select id="royalTitansTarget" class="text-input">
+                                <option value="branda">Branda the Fire Queen</option>
+                                <option value="eldric">Eldric the Ice King</option>
+                              </select>
+                            </label>
+                            <label>
+                              <span class="field-label">Reward option</span>
+                              <select id="royalTitansLootMode" class="text-input">
+                                <option value="loot">Loot</option>
+                                <option value="pages">Take pages</option>
+                                <option value="sacrifice">Sacrifice</option>
+                              </select>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div id="yamaEncounterControls" class="control-group" hidden>
+                          <p class="field-group-title">Yama</p>
+                          <div class="form-grid compact-grid">
+                            <label>
+                              <span class="field-label">Team size</span>
+                              <input id="yamaTeamSize" class="text-input" type="number" min="1" max="2" value="1">
+                            </label>
+                            <label>
+                              <span class="field-label">Your contribution %</span>
+                              <input id="yamaContribution" class="text-input" type="number" min="0" max="100" value="100">
+                            </label>
+                          </div>
+                        </div>
+                      </div>
                     </details>
 
                     <details id="advancedModifiers" class="encounter-settings" hidden>
@@ -197,6 +296,43 @@
                             </label>
                           </div>
                           <p class="panel-note">Applies the Chambers elite clue boost from the combat achievement reward tier.</p>
+                        </div>
+
+                        <div id="nightmareAdvancedControls" class="control-group" hidden>
+                          <p class="field-group-title">Nightmare account modifiers</p>
+                          <div class="form-grid compact-grid">
+                            <label class="toggle-field">
+                              <span class="field-label">Elite CA clue boost</span>
+                              <input id="nightmareEliteCa" type="checkbox">
+                            </label>
+                          </div>
+                          <p class="panel-note">Applies the elite clue improvement for The Nightmare, shifting the personal clue roll from 1/200 to 1/190 before any MVP tertiary bonus.</p>
+                        </div>
+
+                        <div id="hueyAdvancedControls" class="control-group" hidden>
+                          <p class="field-group-title">Hueycoatl account modifiers</p>
+                          <div class="form-grid compact-grid">
+                            <label class="toggle-field">
+                              <span class="field-label">Hard CA clue boost</span>
+                              <input id="hueyHardCa" type="checkbox">
+                            </label>
+                          </div>
+                          <p class="panel-note">Applies the hard clue improvement for the Hueycoatl, shifting the hard clue roll from 1/50 to 1/47.</p>
+                        </div>
+
+                        <div id="royalTitansAdvancedControls" class="control-group" hidden>
+                          <p class="field-group-title">Royal Titans account modifiers</p>
+                          <div class="form-grid compact-grid">
+                            <label class="toggle-field">
+                              <span class="field-label">Hard CA hard clue boost</span>
+                              <input id="royalTitansHardCa" type="checkbox">
+                            </label>
+                            <label class="toggle-field">
+                              <span class="field-label">Elite CA elite clue boost</span>
+                              <input id="royalTitansEliteCa" type="checkbox">
+                            </label>
+                          </div>
+                          <p class="panel-note">These adjust the tertiary clue rates for the Royal Titans without changing the main reward roll.</p>
                         </div>
 
                         <div id="toaAdvancedControls" class="control-group" hidden>
@@ -387,6 +523,20 @@
         <button id="resetThemeButton" class="secondary-button" type="button">Reset defaults</button>
         <button id="saveThemeButton" class="primary-button" type="button">Save theme</button>
       </div>
+    </section>
+  </div>
+
+  <div id="lootDetailModal" class="modal" hidden>
+    <div class="modal-backdrop" data-loot-detail-close></div>
+    <section class="modal-panel loot-detail-modal-panel" role="dialog" aria-modal="true" aria-labelledby="lootDetailModalTitle">
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Loot Details</p>
+          <h2 id="lootDetailModalTitle">Drop calculation details</h2>
+        </div>
+        <button id="closeLootDetailModal" class="icon-button" type="button" aria-label="Close drop details">×</button>
+      </div>
+      <div id="lootDetailModalBody" class="loot-detail-modal-body"></div>
     </section>
   </div>
   <script type="module" src="./app.js"></script>

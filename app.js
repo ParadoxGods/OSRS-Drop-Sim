@@ -130,6 +130,7 @@ const state = {
   paneView: "setup",
   lastResult: null,
   pickerMode: "activity",
+  activeComparisonLootContext: null,
   savedTheme: { ...DEFAULT_THEME },
   themeDraft: { ...DEFAULT_THEME },
 };
@@ -149,6 +150,10 @@ const elements = {
   comparisonLootModalTitle: document.getElementById("comparisonLootModalTitle"),
   comparisonLootModalBody: document.getElementById("comparisonLootModalBody"),
   closeComparisonLootModal: document.getElementById("closeComparisonLootModal"),
+  lootDetailModal: document.getElementById("lootDetailModal"),
+  lootDetailModalTitle: document.getElementById("lootDetailModalTitle"),
+  lootDetailModalBody: document.getElementById("lootDetailModalBody"),
+  closeLootDetailModal: document.getElementById("closeLootDetailModal"),
   themeModal: document.getElementById("themeModal"),
   closeThemeModal: document.getElementById("closeThemeModal"),
   saveThemeButton: document.getElementById("saveThemeButton"),
@@ -195,11 +200,39 @@ const elements = {
   clueMimicEnabled: document.getElementById("clueMimicEnabled"),
   clueMimicAttemptsField: document.getElementById("clueMimicAttemptsField"),
   clueMimicAttempts: document.getElementById("clueMimicAttempts"),
+  groupBossControls: document.getElementById("groupBossControls"),
+  nexControls: document.getElementById("nexControls"),
+  nexTeamSize: document.getElementById("nexTeamSize"),
+  nexContribution: document.getElementById("nexContribution"),
+  nexMvp: document.getElementById("nexMvp"),
+  nightmareControls: document.getElementById("nightmareControls"),
+  nightmareTeamSize: document.getElementById("nightmareTeamSize"),
+  nightmareContribution: document.getElementById("nightmareContribution"),
+  nightmareMvp: document.getElementById("nightmareMvp"),
+  hueyControls: document.getElementById("hueyControls"),
+  hueyTeamSize: document.getElementById("hueyTeamSize"),
+  hueyContribution: document.getElementById("hueyContribution"),
+  hueyMvp: document.getElementById("hueyMvp"),
+  hueyBodyDamage: document.getElementById("hueyBodyDamage"),
+  royalTitansControls: document.getElementById("royalTitansControls"),
+  royalTitansContribution: document.getElementById("royalTitansContribution"),
+  royalTitansTarget: document.getElementById("royalTitansTarget"),
+  royalTitansLootMode: document.getElementById("royalTitansLootMode"),
+  yamaEncounterControls: document.getElementById("yamaEncounterControls"),
+  yamaTeamSize: document.getElementById("yamaTeamSize"),
+  yamaContribution: document.getElementById("yamaContribution"),
   raidControls: document.getElementById("raidControls"),
   yamaAdvancedControls: document.getElementById("yamaAdvancedControls"),
   coxAdvancedControls: document.getElementById("coxAdvancedControls"),
+  nightmareAdvancedControls: document.getElementById("nightmareAdvancedControls"),
+  hueyAdvancedControls: document.getElementById("hueyAdvancedControls"),
+  royalTitansAdvancedControls: document.getElementById("royalTitansAdvancedControls"),
   toaAdvancedControls: document.getElementById("toaAdvancedControls"),
   yamaEliteCa: document.getElementById("yamaEliteCa"),
+  nightmareEliteCa: document.getElementById("nightmareEliteCa"),
+  hueyHardCa: document.getElementById("hueyHardCa"),
+  royalTitansHardCa: document.getElementById("royalTitansHardCa"),
+  royalTitansEliteCa: document.getElementById("royalTitansEliteCa"),
   coxControls: document.getElementById("coxControls"),
   toaControls: document.getElementById("toaControls"),
   tobControls: document.getElementById("tobControls"),
@@ -233,6 +266,14 @@ const RAID_TYPES = {
   cox: new Set(["chambers-of-xeric", "chambers-of-xeric-challenge-mode"]),
   toa: new Set(["tombs-of-amascut", "tombs-of-amascut-expert-mode"]),
   tob: new Set(["theatre-of-blood", "theatre-of-blood-hard-mode"]),
+};
+
+const GROUP_BOSS_TYPES = {
+  nex: new Set(["nex"]),
+  nightmare: new Set(["nightmare"]),
+  huey: new Set(["the-hueycoatl"]),
+  royalTitans: new Set(["the-royal-titans"]),
+  yama: new Set(["yama"]),
 };
 
 const CLUE_UI_DETAILS = {
@@ -293,6 +334,22 @@ function formatPercent(value, digits = 1) {
     return "N/A";
   }
   return `${(Number(value) * 100).toFixed(digits)}%`;
+}
+
+function formatPrecisePercent(value) {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "N/A";
+  }
+  if (value === 0) {
+    return "0%";
+  }
+  if (value < 0.001) {
+    return `${(value * 100).toFixed(4)}%`;
+  }
+  if (value < 0.01) {
+    return `${(value * 100).toFixed(3)}%`;
+  }
+  return `${(value * 100).toFixed(2)}%`;
 }
 
 function formatShortValue(value) {
@@ -420,6 +477,15 @@ function getRaidType(slug) {
   if (RAID_TYPES.cox.has(slug)) return "cox";
   if (RAID_TYPES.toa.has(slug)) return "toa";
   if (RAID_TYPES.tob.has(slug)) return "tob";
+  return null;
+}
+
+function getGroupBossType(slug) {
+  if (GROUP_BOSS_TYPES.nex.has(slug)) return "nex";
+  if (GROUP_BOSS_TYPES.nightmare.has(slug)) return "nightmare";
+  if (GROUP_BOSS_TYPES.huey.has(slug)) return "huey";
+  if (GROUP_BOSS_TYPES.royalTitans.has(slug)) return "royalTitans";
+  if (GROUP_BOSS_TYPES.yama.has(slug)) return "yama";
   return null;
 }
 
@@ -801,12 +867,21 @@ function closeActivityModal() {
 }
 
 function syncModalState() {
-  const anyModalOpen = !elements.activityModal.hidden || !elements.comparisonLootModal.hidden || !elements.themeModal.hidden;
+  const anyModalOpen =
+    !elements.activityModal.hidden ||
+    !elements.comparisonLootModal.hidden ||
+    !elements.themeModal.hidden ||
+    !elements.lootDetailModal.hidden;
   document.body.classList.toggle("modal-open", anyModalOpen);
 }
 
 function closeComparisonLootModal() {
   elements.comparisonLootModal.hidden = true;
+  syncModalState();
+}
+
+function closeLootDetailModal() {
+  elements.lootDetailModal.hidden = true;
   syncModalState();
 }
 
@@ -844,6 +919,156 @@ function resetThemeDraft() {
   applyTheme(state.themeDraft);
 }
 
+function getChanceLabel(source) {
+  if (source?.rarity_fraction) {
+    return source.rarity_fraction;
+  }
+  if (source?.probability !== null && source?.probability !== undefined) {
+    return formatPrecisePercent(source.probability);
+  }
+  if (source?.rarity_percent !== null && source?.rarity_percent !== undefined) {
+    return `${source.rarity_percent}%`;
+  }
+  return "Variable / modeled by scenario";
+}
+
+function getResultScenarioLines(result, scopeName) {
+  const lines = [
+    `This line is aggregated from ${formatNumber(result?.kills_completed || 0)} completed simulated ${scopeName ? `${scopeName} ` : ""}${(result?.kills_completed || 0) === 1 ? "completion" : "completions"}.`,
+  ];
+
+  if (result?.mode === "target") {
+    lines.push(`The run stopped when the target count ${result.target_reached ? "was reached" : "was not reached before the cap"} for this simulation.`);
+  } else if (result?.mode === "gp") {
+    lines.push(`This preview is one representative median GP chase sample and stopped when the simulated total reached the GP target.`);
+  }
+
+  if (result?.clue_context?.mimic_enabled) {
+    lines.push(`Mimic casket logic was enabled for this clue model, using attempt ${formatNumber(result.clue_context.mimic_attempts)} and a Mimic branch chance of ${formatPrecisePercent(result.clue_context.mimic_chance)}.`);
+  } else if (result?.clue_context?.mimic_tier) {
+    lines.push(`This result used the dedicated ${result.clue_context.mimic_tier} Mimic reward model with attempt ${formatNumber(result.clue_context.mimic_attempts)}.`);
+  }
+
+  if (result?.raid_model === "cox") {
+    lines.push(`Chambers of Xeric rewards were modeled with ${formatNumber(result.raid_context?.personal_points || 0)} personal points out of ${formatNumber(result.raid_context?.group_points || 0)} group points, then split by the standard purple-share logic.`);
+    if (result.raid_context?.timed_cm_clear) {
+      lines.push("Timed Challenge Mode tertiary logic was enabled for this result.");
+    }
+  } else if (result?.raid_model === "toa") {
+    lines.push(`Tombs of Amascut rewards were modeled with raid level ${formatNumber(result.raid_context?.raid_level || 0)}, ${formatNumber(result.raid_context?.reward_points || 0)} personal loot points, and ${formatNumber(result.raid_context?.team_points || 0)} team points.`);
+    if (result.raid_context?.owned_jewel_count) {
+      lines.push(`Owned jewel filtering was active with ${formatNumber(result.raid_context.owned_jewel_count)} jewels already owned.`);
+    }
+  } else if (result?.raid_model === "tob") {
+    lines.push(`Theatre of Blood rewards used the raid score model, with a personal unique chance of ${formatPrecisePercent(result.raid_context?.player_unique_chance)} and team unique chance of ${formatPrecisePercent(result.raid_context?.team_unique_chance)}.`);
+    if (result.raid_context?.timed_hard_mode) {
+      lines.push("Timed hard mode tertiary logic was enabled for this result.");
+    }
+  } else if (result?.group_model === "nex") {
+    lines.push(`Nex was modeled with team size ${formatNumber(result.group_context?.team_size || 1)}, ${formatNumber(result.group_context?.contribution_percent || 0)}% personal contribution, and ${result.group_context?.is_mvp ? "the MVP bonus active" : "no MVP bonus"}.`);
+    lines.push(`Personal unique, clue, and pet rolls were scaled to ${formatPrecisePercent(result.group_context?.unique_share)} share.`);
+  } else if (result?.group_model === "nightmare") {
+    lines.push(`The Nightmare used team size ${formatNumber(result.group_context?.team_size || 1)} with ${formatNumber(result.group_context?.contribution_percent || 0)}% personal contribution${result.group_context?.is_mvp ? " and MVP status." : "."}`);
+    if (result.group_context?.second_unique_roll_chance) {
+      lines.push(`The extra unique-table roll was active at ${formatPrecisePercent(result.group_context.second_unique_roll_chance)} based on party size.`);
+    }
+  } else if (result?.group_model === "huey") {
+    lines.push(`The Hueycoatl used team size ${formatNumber(result.group_context?.team_size || 1)} with ${formatNumber(result.group_context?.contribution_percent || 0)}% personal contribution${result.group_context?.is_mvp ? " and the MVP quantity bonus." : "."}`);
+    if (result.group_context?.met_body_damage === false) {
+      lines.push("The body-damage check was marked as missed, so the contribution-backed reward share and pet chance were reduced to 5% of their normal value.");
+    }
+  } else if (result?.group_model === "royalTitans") {
+    lines.push(`Royal Titans rewards were modeled for ${result.group_context?.looted_titan === "eldric" ? "Eldric" : "Branda"} with ${formatNumber(result.group_context?.contribution_percent || 0)}% contribution and the ${result.group_context?.reward_option || "loot"} reward option.`);
+    if (result.group_context?.reward_option === "sacrifice") {
+      lines.push("Sacrifice mode removed the main loot rolls and doubled the pet rate.");
+    } else if (result.group_context?.reward_option === "pages") {
+      lines.push("Take pages mode only rolled desiccated pages and tertiary drops.");
+    }
+  } else if (result?.yama_context) {
+    lines.push(`Yama used team size ${formatNumber(result.yama_context?.team_size || 1)} with ${formatNumber(result.yama_context?.contribution_percent || 0)}% personal contribution. Elite clue chance in this run was ${formatPrecisePercent(result.yama_context.elite_clue_chance)}${result.yama_context.elite_ca_clue_boost ? " with the elite CA clue boost active." : "."}`);
+    if (result.yama_context?.junk_table_active) {
+      lines.push("The contribution was below the 15% reward threshold, so the junk table replaced the normal primary reward chain.");
+    }
+  }
+
+  if (result?.note) {
+    lines.push(result.note);
+  }
+
+  return lines;
+}
+
+function buildLootDetailModalContent(item, result, scopeName) {
+  const sourceCards = (item.sources || []).map((source, index) => {
+    const sourceLines = [
+      `Roll source: ${source.section || "Loot"}${source.base_section && source.base_section !== source.section ? ` (from base table section ${source.base_section})` : ""}.`,
+      `Chance basis: ${getChanceLabel(source)}.`,
+      `Quantity rule on a successful hit: ${source.quantity_text || "1"}.`,
+    ];
+    if (source.row_id) {
+      sourceLines.push(`Table row id: ${source.row_id}.`);
+    }
+    return `
+      <article class="loot-detail-source-card">
+        <div class="review-card-header">
+          <h3>Roll source ${formatNumber(index + 1)}</h3>
+          <span class="subtle">${escapeHtml(source.section || "Loot")}</span>
+        </div>
+        <ul class="loot-detail-list">
+          ${sourceLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}
+        </ul>
+      </article>
+    `;
+  }).join("");
+
+  const scenarioLines = getResultScenarioLines(result, scopeName);
+  const perHitQuantity = item.hit_count ? (item.quantity / item.hit_count) : item.quantity;
+  const perKillQuantity = result?.kills_completed ? (item.quantity / result.kills_completed) : item.quantity;
+
+  return `
+    <div class="loot-detail-shell">
+      <div class="metric-grid gp-detail-metrics">
+        ${buildMetricCard("Total quantity", formatNumber(item.quantity), true)}
+        ${buildMetricCard("Successful hits", formatNumber(item.hit_count || 0))}
+        ${buildMetricCard("Avg qty / hit", formatNumber(Number(perHitQuantity.toFixed(2))))}
+        ${buildMetricCard("Avg qty / run", formatNumber(Number(perKillQuantity.toFixed(3))))}
+      </div>
+
+      <div class="review-note">
+        <strong>Scenario assumptions</strong>
+        <span>This explanation uses the actual modeled scenario behind the displayed result, not a generic drop-table summary.</span>
+      </div>
+
+      <div class="loot-detail-source-list">
+        <article class="loot-detail-source-card">
+          <div class="review-card-header">
+            <h3>How this total was built</h3>
+            <span class="subtle">${escapeHtml(scopeName)}</span>
+          </div>
+          <ul class="loot-detail-list">
+            <li>${escapeHtml(`End-state total: ${formatNumber(item.quantity)}x ${item.item_name} worth ${formatShortValue(item.total_ge_value || 0)} gp in this simulated result.`)}</li>
+            ${scenarioLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}
+          </ul>
+        </article>
+        ${sourceCards}
+      </div>
+    </div>
+  `;
+}
+
+function openLootDetailModal(item, result, scopeName) {
+  if (!item || !result) {
+    return;
+  }
+  elements.lootDetailModalTitle.textContent = `${item.item_name} details`;
+  elements.lootDetailModalBody.innerHTML = buildLootDetailModalContent(item, result, scopeName);
+  elements.lootDetailModal.hidden = false;
+  syncModalState();
+  window.requestAnimationFrame(() => {
+    elements.closeLootDetailModal.focus();
+  });
+}
+
 function getComparisonDetailMeta(entry, result) {
   const preview = entry?.preview_result || null;
   const averageValue = preview?.kills_completed ? Math.round((preview.total_ge_value || 0) / preview.kills_completed) : 0;
@@ -867,6 +1092,11 @@ function openComparisonLootModal(slug) {
   }
 
   const detail = getComparisonDetailMeta(entry, result);
+  state.activeComparisonLootContext = {
+    activitySlug: entry.slug,
+    activityName: entry.name,
+    result: entry.preview_result,
+  };
   elements.comparisonLootModalTitle.textContent = detail.title;
   elements.comparisonLootModalBody.innerHTML = buildComparisonLootDetail(entry, result, { includeTitle: false });
   elements.comparisonLootModal.hidden = false;
@@ -1031,6 +1261,7 @@ function showSetupStage() {
   elements.setupStage.hidden = false;
   elements.resultsStage.hidden = true;
   closeComparisonLootModal();
+  closeLootDetailModal();
   renderSetupProgress();
 }
 
@@ -1288,6 +1519,7 @@ async function downloadResultsScreenshot() {
 function setSimulationLoading(message, detail = "Rolling rewards and assembling the final loot review.") {
   showResultsStage(false);
   closeComparisonLootModal();
+  closeLootDetailModal();
   state.lastResult = null;
   elements.resultsContext.innerHTML = buildResultsContext();
   setRunButtonState(true);
@@ -1358,6 +1590,20 @@ function renderSimulationState(activity) {
   const selectedTargetItem = state.selectedTargetItem;
 
   elements.killsInput.max = String(MAX_SIM_CAP);
+  elements.clueControls.hidden = true;
+  elements.raidControls.hidden = true;
+  elements.groupBossControls.hidden = true;
+  elements.nexControls.hidden = true;
+  elements.nightmareControls.hidden = true;
+  elements.hueyControls.hidden = true;
+  elements.royalTitansControls.hidden = true;
+  elements.yamaEncounterControls.hidden = true;
+  elements.yamaAdvancedControls.hidden = true;
+  elements.coxAdvancedControls.hidden = true;
+  elements.nightmareAdvancedControls.hidden = true;
+  elements.hueyAdvancedControls.hidden = true;
+  elements.royalTitansAdvancedControls.hidden = true;
+  elements.toaAdvancedControls.hidden = true;
 
   if (!modeChosen) {
     elements.simulateButton.disabled = true;
@@ -1370,11 +1616,6 @@ function renderSimulationState(activity) {
     elements.encounterSettings.open = false;
     elements.advancedModifiers.hidden = true;
     elements.advancedModifiers.open = false;
-    elements.clueControls.hidden = true;
-    elements.raidControls.hidden = true;
-    elements.yamaAdvancedControls.hidden = true;
-    elements.coxAdvancedControls.hidden = true;
-    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = true;
@@ -1395,11 +1636,6 @@ function renderSimulationState(activity) {
     elements.encounterSettings.open = false;
     elements.advancedModifiers.hidden = true;
     elements.advancedModifiers.open = false;
-    elements.clueControls.hidden = true;
-    elements.raidControls.hidden = true;
-    elements.yamaAdvancedControls.hidden = true;
-    elements.coxAdvancedControls.hidden = true;
-    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = disabled;
@@ -1421,11 +1657,6 @@ function renderSimulationState(activity) {
     elements.encounterSettings.open = false;
     elements.advancedModifiers.hidden = true;
     elements.advancedModifiers.open = false;
-    elements.clueControls.hidden = true;
-    elements.raidControls.hidden = true;
-    elements.yamaAdvancedControls.hidden = true;
-    elements.coxAdvancedControls.hidden = true;
-    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = true;
@@ -1445,11 +1676,6 @@ function renderSimulationState(activity) {
     elements.encounterSettings.open = false;
     elements.advancedModifiers.hidden = true;
     elements.advancedModifiers.open = false;
-    elements.clueControls.hidden = true;
-    elements.raidControls.hidden = true;
-    elements.yamaAdvancedControls.hidden = true;
-    elements.coxAdvancedControls.hidden = true;
-    elements.toaAdvancedControls.hidden = true;
     elements.targetItem.disabled = true;
     elements.targetCount.disabled = true;
     elements.targetGpValue.disabled = true;
@@ -1475,11 +1701,6 @@ function renderSimulationState(activity) {
     elements.encounterSettings.open = false;
     elements.advancedModifiers.hidden = true;
     elements.advancedModifiers.open = false;
-    elements.clueControls.hidden = true;
-    elements.raidControls.hidden = true;
-    elements.yamaAdvancedControls.hidden = true;
-    elements.coxAdvancedControls.hidden = true;
-    elements.toaAdvancedControls.hidden = true;
     elements.simulationHelp.textContent = disabled
       ? "No eligible bosses were found for this item."
       : `Choose the quantity to chase, then simulate. The results view will rank ${formatNumber(bossCount)} ${bossCount === 1 ? "boss" : "bosses"} that can drop this item by median simulated KC.`;
@@ -1488,12 +1709,20 @@ function renderSimulationState(activity) {
 
   const rootSlug = state.selectedActivity.slug;
   const raidType = getRaidType(rootSlug);
+  const groupBossType = getGroupBossType(rootSlug);
   const clueTier = getEffectiveClueTier(rootSlug, activity);
   const clueUiDetails = getClueUiDetails(rootSlug);
   const rollRange = activity.simulation?.reward_roll_range;
   const disabled = !activity.supported || activity.simulation_disabled;
-  const hasEncounterSettings = Boolean(clueTier || raidType);
-  const hasAdvancedModifiers = rootSlug === "yama" || raidType === "cox" || raidType === "toa";
+  const hasEncounterSettings = Boolean(clueTier || raidType || groupBossType);
+  const hasAdvancedModifiers = Boolean(
+    rootSlug === "yama" ||
+    raidType === "cox" ||
+    raidType === "toa" ||
+    groupBossType === "nightmare" ||
+    groupBossType === "huey" ||
+    groupBossType === "royalTitans",
+  );
   const hasVariantOptions = (state.selectedActivity?.variants || []).length > 1;
 
   elements.simulateButton.disabled = disabled;
@@ -1519,6 +1748,16 @@ function renderSimulationState(activity) {
       summary = "Encounter settings: raid level and loot points";
     } else if (raidType === "tob") {
       summary = "Encounter settings: team score and hard mode modifiers";
+    } else if (groupBossType === "nex") {
+      summary = "Encounter settings: team share and MVP";
+    } else if (groupBossType === "nightmare") {
+      summary = "Encounter settings: team size and contribution";
+    } else if (groupBossType === "huey") {
+      summary = "Encounter settings: contribution and damage checks";
+    } else if (groupBossType === "royalTitans") {
+      summary = "Encounter settings: contribution and reward choice";
+    } else if (groupBossType === "yama") {
+      summary = "Encounter settings: duo contribution";
     } else if (rootSlug === "mimic") {
       summary = "Encounter settings: Mimic attempt";
     } else if (clueTier) {
@@ -1538,11 +1777,26 @@ function renderSimulationState(activity) {
       summary = "Advanced modifiers: Chambers account perks";
     } else if (raidType === "toa") {
       summary = "Advanced modifiers: Tombs owned rewards";
+    } else if (groupBossType === "nightmare") {
+      summary = "Advanced modifiers: Nightmare account perks";
+    } else if (groupBossType === "huey") {
+      summary = "Advanced modifiers: Hueycoatl account perks";
+    } else if (groupBossType === "royalTitans") {
+      summary = "Advanced modifiers: Royal Titans account perks";
     }
     elements.advancedModifiersSummary.textContent = summary;
   }
+  elements.groupBossControls.hidden = !groupBossType;
+  elements.nexControls.hidden = groupBossType !== "nex";
+  elements.nightmareControls.hidden = groupBossType !== "nightmare";
+  elements.hueyControls.hidden = groupBossType !== "huey";
+  elements.royalTitansControls.hidden = groupBossType !== "royalTitans";
+  elements.yamaEncounterControls.hidden = groupBossType !== "yama";
   elements.yamaAdvancedControls.hidden = rootSlug !== "yama";
   elements.coxAdvancedControls.hidden = raidType !== "cox";
+  elements.nightmareAdvancedControls.hidden = groupBossType !== "nightmare";
+  elements.hueyAdvancedControls.hidden = groupBossType !== "huey";
+  elements.royalTitansAdvancedControls.hidden = groupBossType !== "royalTitans";
   elements.toaAdvancedControls.hidden = raidType !== "toa";
 
   elements.clueControls.hidden = !clueTier;
@@ -1578,8 +1832,16 @@ function renderSimulationState(activity) {
     helpText = `${helpText} Open encounter settings to set raid level and loot points, then use advanced modifiers for owned thread and jewels.`;
   } else if (!isGpMode && raidType === "tob") {
     helpText = `${helpText} Open encounter settings to set team size, deaths, and hard mode timing.`;
+  } else if (!isGpMode && groupBossType === "nex") {
+    helpText = `${helpText} Open encounter settings to model your team size, personal share, and MVP bonus so Nex personal rolls match group kills more closely.`;
+  } else if (!isGpMode && groupBossType === "nightmare") {
+    helpText = `${helpText} Open encounter settings to model team size, personal contribution, and MVP status, then use advanced modifiers for the elite clue perk if your account has it.`;
+  } else if (!isGpMode && groupBossType === "huey") {
+    helpText = `${helpText} Open encounter settings to set your contribution, MVP state, and whether you met the body-damage check, then use advanced modifiers for the hard clue perk if needed.`;
+  } else if (!isGpMode && groupBossType === "royalTitans") {
+    helpText = `${helpText} Open encounter settings to choose Branda or Eldric, set your contribution, and pick loot, pages, or sacrifice.`;
   } else if (!isGpMode && rootSlug === "yama") {
-    helpText = `${helpText} Open advanced modifiers if your account has the elite CA clue boost unlocked.`;
+    helpText = `${helpText} Open encounter settings to model duo contribution, then use advanced modifiers if your account has the elite CA clue boost unlocked.`;
   } else if (!isGpMode && clueUiDetails && rootSlug !== "mimic") {
     helpText = `${helpText} ${clueUiDetails.helpText}`;
   } else if (!isGpMode && rootSlug === "mimic") {
@@ -1666,6 +1928,32 @@ function collectSimulationPayloadAndOptions() {
   }
 
   const raidType = rootSlug ? getRaidType(rootSlug) : null;
+  const groupBossType = rootSlug ? getGroupBossType(rootSlug) : null;
+  if (groupBossType === "nex") {
+    options.nex_team_size = Math.min(60, Math.max(1, Math.floor(Number(elements.nexTeamSize.value || 1))));
+    options.nex_contribution_percent = Math.min(100, Math.max(0, Math.floor(Number(elements.nexContribution.value || 0))));
+    options.nex_mvp = elements.nexMvp.checked || options.nex_team_size === 1;
+  } else if (groupBossType === "nightmare") {
+    options.nightmare_team_size = Math.min(80, Math.max(1, Math.floor(Number(elements.nightmareTeamSize.value || 1))));
+    options.nightmare_contribution_percent = Math.min(100, Math.max(0, Math.floor(Number(elements.nightmareContribution.value || 0))));
+    options.nightmare_mvp = elements.nightmareMvp.checked || options.nightmare_team_size === 1;
+    options.nightmare_elite_ca = elements.nightmareEliteCa.checked;
+  } else if (groupBossType === "huey") {
+    options.huey_team_size = Math.min(20, Math.max(1, Math.floor(Number(elements.hueyTeamSize.value || 1))));
+    options.huey_contribution_percent = Math.min(100, Math.max(0, Math.floor(Number(elements.hueyContribution.value || 0))));
+    options.huey_mvp = elements.hueyMvp.checked || options.huey_team_size === 1;
+    options.huey_body_damage_met = elements.hueyBodyDamage.checked;
+    options.huey_hard_ca = elements.hueyHardCa.checked;
+  } else if (groupBossType === "royalTitans") {
+    options.royal_titans_contribution_percent = Math.min(100, Math.max(0, Math.floor(Number(elements.royalTitansContribution.value || 0))));
+    options.royal_titans_target = elements.royalTitansTarget.value || "branda";
+    options.royal_titans_loot_mode = elements.royalTitansLootMode.value || "loot";
+    options.royal_titans_hard_ca = elements.royalTitansHardCa.checked;
+    options.royal_titans_elite_ca = elements.royalTitansEliteCa.checked;
+  } else if (groupBossType === "yama") {
+    options.yama_team_size = Math.min(2, Math.max(1, Math.floor(Number(elements.yamaTeamSize.value || 1))));
+    options.yama_contribution_percent = Math.min(100, Math.max(0, Math.floor(Number(elements.yamaContribution.value || 0))));
+  }
   if (raidType === "cox") {
     options.cox_personal_points = Number(elements.coxPersonalPoints.value || 0);
     options.cox_group_points = Number(elements.coxGroupPoints.value || 0);
@@ -1775,6 +2063,7 @@ function renderRunSummary() {
     }
 
     const raidType = getRaidType(rootSlug);
+    const groupBossType = getGroupBossType(rootSlug);
     if (rootSlug === "yama" && options.yama_elite_ca) {
       cards.push(buildSummaryCard("Elite CA clue", "1/28 enabled"));
     }
@@ -1799,6 +2088,38 @@ function renderRunSummary() {
       cards.push(buildSummaryCard("Team size", formatNumber(options.tob_team_size)));
       cards.push(buildSummaryCard("Your deaths", formatNumber(options.tob_deaths)));
       cards.push(buildSummaryCard("Team deaths", formatNumber(options.tob_team_deaths)));
+    } else if (groupBossType === "nex") {
+      cards.push(buildSummaryCard("Team size", formatNumber(options.nex_team_size || 1)));
+      cards.push(buildSummaryCard("Your share", `${formatNumber(options.nex_contribution_percent || 0)}%`));
+      cards.push(buildSummaryCard("MVP", options.nex_mvp ? "Yes" : "No"));
+    } else if (groupBossType === "nightmare") {
+      cards.push(buildSummaryCard("Team size", formatNumber(options.nightmare_team_size || 1)));
+      cards.push(buildSummaryCard("Your share", `${formatNumber(options.nightmare_contribution_percent || 0)}%`));
+      cards.push(buildSummaryCard("MVP", options.nightmare_mvp ? "Yes" : "No"));
+      if (options.nightmare_elite_ca) {
+        cards.push(buildSummaryCard("Elite CA clue", "Enabled"));
+      }
+    } else if (groupBossType === "huey") {
+      cards.push(buildSummaryCard("Team size", formatNumber(options.huey_team_size || 1)));
+      cards.push(buildSummaryCard("Your share", `${formatNumber(options.huey_contribution_percent || 0)}%`));
+      cards.push(buildSummaryCard("MVP", options.huey_mvp ? "Yes" : "No"));
+      cards.push(buildSummaryCard("Body damage", options.huey_body_damage_met ? "Met" : "Missed"));
+      if (options.huey_hard_ca) {
+        cards.push(buildSummaryCard("Hard CA clue", "Enabled"));
+      }
+    } else if (groupBossType === "royalTitans") {
+      cards.push(buildSummaryCard("Your share", `${formatNumber(options.royal_titans_contribution_percent || 0)}%`));
+      cards.push(buildSummaryCard("Looted titan", options.royal_titans_target === "eldric" ? "Eldric" : "Branda"));
+      cards.push(buildSummaryCard("Reward option", options.royal_titans_loot_mode === "pages" ? "Take pages" : (options.royal_titans_loot_mode === "sacrifice" ? "Sacrifice" : "Loot")));
+      if (options.royal_titans_hard_ca) {
+        cards.push(buildSummaryCard("Hard CA clue", "Enabled"));
+      }
+      if (options.royal_titans_elite_ca) {
+        cards.push(buildSummaryCard("Elite CA clue", "Enabled"));
+      }
+    } else if (groupBossType === "yama") {
+      cards.push(buildSummaryCard("Team size", formatNumber(options.yama_team_size || 1)));
+      cards.push(buildSummaryCard("Your share", `${formatNumber(options.yama_contribution_percent || 0)}%`));
     }
   }
 
@@ -1856,8 +2177,12 @@ function buildResultMeta(result) {
     chips.push(`Elite clue ${formatPercent(result.raid_context?.elite_clue_chance, 1)}`);
   } else if (result.yama_context) {
     chips.push(`Elite clue ${formatPercent(result.yama_context?.elite_clue_chance, 2)}`);
+    chips.push(`Share ${formatPercent(result.yama_context?.contribution_share, 1)}`);
     if (result.yama_context?.elite_ca_clue_boost) {
       chips.push("Elite CA clue perk");
+    }
+    if (result.yama_context?.junk_table_active) {
+      chips.push("Junk table");
     }
   } else if (result.raid_model === "tob") {
     chips.push(`Your purple ${formatPercent(result.raid_context?.player_unique_chance, 2)}`);
@@ -1866,6 +2191,31 @@ function buildResultMeta(result) {
     if (result.raid_context?.timed_hard_mode) {
       chips.push("Timed hard mode");
     }
+  } else if (result.group_model === "nex") {
+    chips.push(`Share ${formatPercent(result.group_context?.unique_share, 1)}`);
+    chips.push(`Unique ${formatPercent(result.group_context?.unique_chance, 2)}`);
+    if (result.group_context?.is_mvp) {
+      chips.push("MVP");
+    }
+  } else if (result.group_model === "nightmare") {
+    chips.push(`Share ${formatPercent(result.group_context?.unique_share, 1)}`);
+    chips.push(`Pet ${formatPercent(result.group_context?.pet_chance, 2)}`);
+    if (result.group_context?.second_unique_roll_chance) {
+      chips.push(`2nd roll ${formatPercent(result.group_context?.second_unique_roll_chance, 1)}`);
+    }
+  } else if (result.group_model === "huey") {
+    chips.push(`Share ${formatPercent(result.group_context?.effective_share, 1)}`);
+    chips.push(`Unique ${formatPercent(result.group_context?.unique_chance, 2)}`);
+    if (result.group_context?.is_mvp) {
+      chips.push("MVP");
+    }
+    if (result.group_context?.met_body_damage === false) {
+      chips.push("Body penalty");
+    }
+  } else if (result.group_model === "royalTitans") {
+    chips.push(`Share ${formatPercent(result.group_context?.contribution_share, 1)}`);
+    chips.push(`Mode ${result.group_context?.reward_option || "loot"}`);
+    chips.push(result.group_context?.looted_titan === "eldric" ? "Eldric" : "Branda");
   }
   if (result.clue_context?.mimic_enabled) {
     chips.push(`Mimic ${formatPercent(result.clue_context.mimic_chance, 2)}`);
@@ -1912,6 +2262,7 @@ function buildGpPreviewTable(result) {
           </td>
           <td>${formatNumber(item.quantity)}</td>
           <td>${item.total_ge_value ? formatNumber(item.total_ge_value) : "N/A"}</td>
+          <td><button class="secondary-button detail-button" type="button" data-loot-detail-item="${escapeHtml(item.item_slug)}" data-loot-detail-scope="comparison">Details</button></td>
         </tr>
       `;
     })
@@ -1925,9 +2276,10 @@ function buildGpPreviewTable(result) {
             <th>Item</th>
             <th>Qty</th>
             <th>Total GP</th>
+            <th>Details</th>
           </tr>
         </thead>
-        <tbody>${rows || '<tr><td colspan="3">No loot recorded.</td></tr>'}</tbody>
+        <tbody>${rows || '<tr><td colspan="4">No loot recorded.</td></tr>'}</tbody>
       </table>
     </div>
   `;
@@ -2010,6 +2362,7 @@ function buildComparisonRankRow(entry, index, maxKillsForScale, selectedSlug, re
 function renderComparisonResults(result) {
   showResultsStage(true);
   closeComparisonLootModal();
+  closeLootDetailModal();
   state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
@@ -2068,6 +2421,7 @@ function renderComparisonResults(result) {
 function renderSimulationResults(result) {
   showResultsStage(true);
   closeComparisonLootModal();
+  closeLootDetailModal();
   state.lastResult = result;
   elements.simulationResults.classList.remove("is-loading");
   elements.resultsContext.innerHTML = buildResultsContext(result);
@@ -2092,6 +2446,9 @@ function renderSimulationResults(result) {
             <span>${formatNumber(item.quantity)}x</span>
             <strong>${formatShortValue(item.total_ge_value || 0)} gp</strong>
             <span>${share}</span>
+          </div>
+          <div class="loot-card-actions">
+            <button class="secondary-button detail-button" type="button" data-loot-detail-item="${escapeHtml(item.item_slug)}" data-loot-detail-scope="simulation">Details</button>
           </div>
         </article>
       `;
@@ -2133,6 +2490,7 @@ function renderSimulationResults(result) {
           <td>${formatNumber(item.quantity)}</td>
           <td>${escapeHtml(share)}</td>
           <td>${item.total_ge_value ? formatNumber(item.total_ge_value) : "N/A"}</td>
+          <td><button class="secondary-button detail-button" type="button" data-loot-detail-item="${escapeHtml(item.item_slug)}" data-loot-detail-scope="simulation">Details</button></td>
         </tr>
       `;
     })
@@ -2231,9 +2589,10 @@ function renderSimulationResults(result) {
                   <th>Qty</th>
                   <th>Share</th>
                   <th>Total GP</th>
+                  <th>Details</th>
                 </tr>
               </thead>
-              <tbody>${lootRows || '<tr><td colspan="4">No loot recorded.</td></tr>'}</tbody>
+              <tbody>${lootRows || '<tr><td colspan="5">No loot recorded.</td></tr>'}</tbody>
             </table>
           </div>
         </div>
@@ -2472,6 +2831,12 @@ elements.comparisonLootModal.addEventListener("click", (event) => {
     closeComparisonLootModal();
   }
 });
+elements.closeLootDetailModal.addEventListener("click", closeLootDetailModal);
+elements.lootDetailModal.addEventListener("click", (event) => {
+  if (event.target.matches("[data-loot-detail-close]")) {
+    closeLootDetailModal();
+  }
+});
 elements.closeThemeModal.addEventListener("click", () => closeThemeModal());
 elements.themeModal.addEventListener("click", (event) => {
   if (event.target.matches("[data-theme-modal-close]")) {
@@ -2497,6 +2862,10 @@ elements.modalSupportedOnly.addEventListener("change", () => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
+    if (!elements.lootDetailModal.hidden) {
+      closeLootDetailModal();
+      return;
+    }
     if (!elements.themeModal.hidden) {
       closeThemeModal();
       return;
@@ -2552,6 +2921,24 @@ elements.modeGpButton.addEventListener("click", () => {
         elements.targetGpValue.value = String(cleaned);
       }
     }
+    if (eventName === "change") {
+      const numericRangeMap = new Map([
+        [elements.nexTeamSize, { min: 1, max: 60 }],
+        [elements.nexContribution, { min: 0, max: 100 }],
+        [elements.nightmareTeamSize, { min: 1, max: 80 }],
+        [elements.nightmareContribution, { min: 0, max: 100 }],
+        [elements.hueyTeamSize, { min: 1, max: 20 }],
+        [elements.hueyContribution, { min: 0, max: 100 }],
+        [elements.royalTitansContribution, { min: 0, max: 100 }],
+        [elements.yamaTeamSize, { min: 1, max: 2 }],
+        [elements.yamaContribution, { min: 0, max: 100 }],
+      ]);
+      const range = numericRangeMap.get(event.target);
+      if (range) {
+        const cleaned = Math.max(range.min, Math.min(range.max, Math.floor(Number(event.target.value || range.min))));
+        event.target.value = String(cleaned);
+      }
+    }
     if (state.simulationMode) {
       showSetupStage();
       renderSimulationState(getSetupActivityView());
@@ -2568,11 +2955,34 @@ elements.simulationResults.addEventListener("click", (event) => {
     openComparisonLootModal(state.activeGpRankingSlug);
     return;
   }
+  const detailButton = event.target.closest("[data-loot-detail-item]");
+  if (detailButton) {
+    const scope = detailButton.dataset.lootDetailScope;
+    if (scope === "comparison" && state.activeComparisonLootContext?.result) {
+      const item = (state.activeComparisonLootContext.result.totals || []).find((entry) => entry.item_slug === detailButton.dataset.lootDetailItem);
+      openLootDetailModal(item, state.activeComparisonLootContext.result, state.activeComparisonLootContext.activityName || "Comparison preview");
+      return;
+    }
+    if (scope === "simulation" && state.lastResult) {
+      const item = (state.lastResult.totals || []).find((entry) => entry.item_slug === detailButton.dataset.lootDetailItem);
+      openLootDetailModal(item, state.lastResult, state.selectedActivity?.name || "Simulation result");
+      return;
+    }
+  }
   const button = event.target.closest("[data-results-tab]");
   if (!button) {
     return;
   }
   setResultsTab(button.dataset.resultsTab);
+});
+
+elements.comparisonLootModalBody.addEventListener("click", (event) => {
+  const detailButton = event.target.closest("[data-loot-detail-item]");
+  if (!detailButton || !state.activeComparisonLootContext?.result) {
+    return;
+  }
+  const item = (state.activeComparisonLootContext.result.totals || []).find((entry) => entry.item_slug === detailButton.dataset.lootDetailItem);
+  openLootDetailModal(item, state.activeComparisonLootContext.result, state.activeComparisonLootContext.activityName || "Comparison preview");
 });
 
 elements.runAgainButton.addEventListener("click", () => {

@@ -104,17 +104,42 @@ function isNotableDrop(row, quantity) {
 
 function addToCollection(collection, row, quantity, sectionOverride) {
   const stackGeValue = (row.ge_unit_estimate || 0) * quantity;
+  const effectiveSection = sectionOverride || row.section;
   const entry = collection.get(row.item_slug) || {
     item_name: row.item_name,
     item_slug: row.item_slug,
     item_asset_path: row.item_asset_path,
     quantity: 0,
+    hit_count: 0,
     ge_value_each: row.ge_unit_estimate,
     total_ge_value: 0,
-    section: sectionOverride || row.section,
+    section: effectiveSection,
+    sources: [],
   };
   entry.quantity += quantity;
+  entry.hit_count += 1;
   entry.total_ge_value += stackGeValue;
+  const sourceSignature = [
+    row.row_id || row.item_slug || row.item_name,
+    effectiveSection || "",
+    row.section || "",
+    row.quantity_text || "1",
+    row.rarity_fraction || "",
+    row.rarity_percent || "",
+    row.probability ?? "",
+  ].join("|");
+  if (!entry.sources.some((source) => source.signature === sourceSignature)) {
+    entry.sources.push({
+      signature: sourceSignature,
+      row_id: row.row_id || null,
+      section: effectiveSection || "Loot",
+      base_section: row.section || effectiveSection || "Loot",
+      quantity_text: row.quantity_text || "1",
+      probability: row.probability ?? null,
+      rarity_fraction: row.rarity_fraction || null,
+      rarity_percent: row.rarity_percent || null,
+    });
+  }
   collection.set(row.item_slug, entry);
   return stackGeValue;
 }
@@ -491,6 +516,110 @@ function getMimicCommonQuantity(tier, slug, attemptCount) {
   return values[Math.min(values.length - 1, Math.max(0, attemptCount - 1))];
 }
 
+function pickProbabilityWeightedRow(rows, rng) {
+  return pickWeightedValue(
+    rows
+      .filter((row) => (row?.probability || 0) > 0)
+      .map((row) => ({ value: row, weight: row.probability || 0 })),
+    rng,
+  );
+}
+
+function scaleContributionShare(percent, multiplier = 1) {
+  const baseShare = clamp((Number(percent) || 0) / 100, 0, 1);
+  return clamp(baseShare * multiplier, 0, 1);
+}
+
+function scaleQuantityValue(baseQuantity, share, options = {}) {
+  const { minOneIfPositive = false } = options;
+  if (!(share > 0) || !(baseQuantity > 0)) {
+    return 0;
+  }
+  const scaled = Math.floor(baseQuantity * share);
+  if (minOneIfPositive) {
+    return Math.max(1, scaled);
+  }
+  return scaled;
+}
+
+function sampleScaledQuantity(row, rng, share, options = {}) {
+  const baseQuantity = sampleQuantity(row.quantity_text || "1", rng);
+  return scaleQuantityValue(baseQuantity, share, options);
+}
+
+function getNightmarePetChance(teamSize) {
+  const size = clamp(Number(teamSize) || 1, 1, 80);
+  if (size <= 1) {
+    return 1 / 800;
+  }
+  if (size === 2) {
+    return 1 / 1600;
+  }
+  if (size === 3) {
+    return 1 / 2400;
+  }
+  if (size === 4) {
+    return 1 / 3200;
+  }
+  return 1 / 4000;
+}
+
+function getNexCommonEntries(activityData) {
+  const exactRows = (activityData.drop_rows || []).filter((row) =>
+    !["100%", "Uniques", "Tertiary", "Consumables"].includes(row.section || "") && (row.probability || 0) > 0,
+  );
+  const weightedRows = (activityData.drop_rows || [])
+    .filter((row) =>
+      !["100%", "Uniques", "Tertiary", "Consumables"].includes(row.section || "") &&
+      !row.probability &&
+      (row.rarity_fraction === "Common" || row.rarity_fraction === "Uncommon"),
+    )
+    .map((row) => ({
+      kind: "row",
+      weight: row.rarity_fraction === "Common" ? 5 : 2.5,
+      row,
+    }));
+
+  const sharkRow = getRowBySlug(activityData, "shark");
+  const prayerRow = getRowBySlug(activityData, "prayer-potion-4");
+  const brewRow = getRowBySlug(activityData, "saradomin-brew-4");
+  const restoreRow = getRowBySlug(activityData, "super-restore-4");
+  const entries = exactRows.map((row) => ({
+    kind: "row",
+    weight: Math.max(0.25, (row.probability || 0) * 120),
+    row,
+  }));
+
+  if (sharkRow && prayerRow) {
+    entries.push({
+      kind: "bundle",
+      weight: 4,
+      rows: [
+        { row: sharkRow, quantityText: sharkRow.quantity_text || "10" },
+        { row: prayerRow, quantityText: prayerRow.quantity_text || "3" },
+      ],
+      section: "Consumables",
+    });
+  }
+  if (brewRow && restoreRow) {
+    entries.push({
+      kind: "bundle",
+      weight: 4,
+      rows: [
+        { row: brewRow, quantityText: brewRow.quantity_text || "1-10" },
+        { row: restoreRow, quantityText: restoreRow.quantity_text || "1-5" },
+      ],
+      section: "Consumables",
+    });
+  }
+
+  return entries.concat(weightedRows);
+}
+
+function pickNexCommonEntry(activityData, rng) {
+  return pickWeightedValue(getNexCommonEntries(activityData).map((entry) => ({ value: entry, weight: entry.weight })), rng);
+}
+
 function rollMimicRewardBundle(activityData, collection, notableDrops, tier, attemptCount, killCount, sectionOverride, rng) {
   const config = MIMIC_CONFIG[tier];
   if (!config) {
@@ -552,6 +681,381 @@ function simulateMimicActivity(activityData, options, rng) {
   });
 }
 
+function simulateNexActivity(activityData, options, rng) {
+  const simulation = activityData.simulation || {};
+  const collected = new Map();
+  const notableDrops = [];
+  let totalGeValue = 0;
+  let killsCompleted = 0;
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
+  const teamSize = clamp(Number(options.nex_team_size) || 1, 1, 60);
+  const contributionPercent = clamp(Number(options.nex_contribution_percent) || 100, 0, 100);
+  const isMvp = teamSize === 1 ? true : Boolean(options.nex_mvp);
+  const commonShare = scaleContributionShare(contributionPercent, isMvp ? 1.1 : 1);
+  const uniqueShare = scaleContributionShare(contributionPercent, isMvp ? 1.1 : 1);
+  const uniqueRows = (activityData.drop_rows || []).filter((row) => row.section === "Uniques");
+  const bigBonesRow = getRowBySlug(activityData, "big-bones");
+  const clueRow = getRowBySlug(activityData, "clue-scroll-elite");
+  const petRow = getRowBySlug(activityData, "nexling");
+
+  while (killsCompleted < limit) {
+    killsCompleted += 1;
+
+    if (isMvp && bigBonesRow && contributionPercent > 0) {
+      totalGeValue += addRowLoot(collected, notableDrops, bigBonesRow, 1, killsCompleted, { sectionOverride: "100%" });
+    }
+
+    for (let roll = 0; roll < 2; roll += 1) {
+      const entry = pickNexCommonEntry(activityData, rng);
+      if (!entry) {
+        continue;
+      }
+      if (entry.kind === "bundle") {
+        for (const part of entry.rows || []) {
+          const quantity = scaleQuantityValue(sampleQuantity(part.quantityText || part.row.quantity_text || "1", rng), commonShare, { minOneIfPositive: true });
+          if (quantity > 0) {
+            totalGeValue += addRowLoot(collected, notableDrops, part.row, quantity, killsCompleted, { sectionOverride: entry.section || part.row.section });
+          }
+        }
+        continue;
+      }
+      const quantity = sampleScaledQuantity(entry.row, rng, commonShare, { minOneIfPositive: true });
+      if (quantity > 0) {
+        totalGeValue += addRowLoot(collected, notableDrops, entry.row, quantity, killsCompleted);
+      }
+    }
+
+    if (uniqueRows.length && rng() <= ((1 / 43) * uniqueShare)) {
+      const picked = pickProbabilityWeightedRow(uniqueRows, rng);
+      if (picked) {
+        totalGeValue += addRowLoot(collected, notableDrops, picked, 1, killsCompleted, { sectionOverride: "Uniques" });
+      }
+    }
+    if (clueRow && contributionPercent > 0 && rng() <= ((clueRow.probability || (1 / 48)) * uniqueShare)) {
+      totalGeValue += addRowLoot(collected, notableDrops, clueRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+    if (petRow && contributionPercent > 0 && rng() <= ((petRow.probability || (1 / 500)) * uniqueShare)) {
+      totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
+    }
+  }
+
+  return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
+    group_model: "nex",
+    group_context: {
+      team_size: teamSize,
+      contribution_percent: contributionPercent,
+      common_share: commonShare,
+      unique_share: uniqueShare,
+      is_mvp: isMvp,
+      unique_chance: (1 / 43) * uniqueShare,
+      elite_clue_chance: (clueRow?.probability || (1 / 48)) * uniqueShare,
+      pet_chance: (petRow?.probability || (1 / 500)) * uniqueShare,
+    },
+    note: "Nex unique, clue, and personal share logic follow the wiki contribution model. The common-drop mix is approximated from the wiki's published common and uncommon groupings because the base page does not publish exact per-row common weights.",
+  });
+}
+
+function simulateNightmareActivity(activityData, options, rng) {
+  const simulation = activityData.simulation || {};
+  const collected = new Map();
+  const notableDrops = [];
+  let totalGeValue = 0;
+  let killsCompleted = 0;
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
+  const teamSize = clamp(Number(options.nightmare_team_size) || 1, 1, 80);
+  const contributionPercent = clamp(Number(options.nightmare_contribution_percent) || 100, 0, 100);
+  const isMvp = teamSize === 1 ? true : Boolean(options.nightmare_mvp);
+  const commonShare = scaleContributionShare(contributionPercent, isMvp ? 1.1 : 1);
+  const uniqueShare = scaleContributionShare(contributionPercent, 1);
+  const eliteCaClueBoost = Boolean(options.nightmare_elite_ca);
+  const bigBonesRow = getRowBySlug(activityData, "big-bones");
+  const bonesRow = getRowBySlug(activityData, "bones");
+  const clueRow = getRowBySlug(activityData, "clue-scroll-elite");
+  const petRow = getRowBySlug(activityData, "little-nightmare");
+  const jarRow = getRowBySlug(activityData, "jar-of-dreams");
+  const commonRows = (activityData.drop_rows || []).filter((row) =>
+    !["100%", "Tertiary", "Uniques"].includes(row.section || "") && (row.probability || 0) > 0,
+  );
+  const orbSlugs = new Set(["eldritch-orb", "harmonised-orb", "volatile-orb"]);
+  const staffRows = (activityData.drop_rows || []).filter((row) => row.section === "Uniques" && !orbSlugs.has(row.item_slug));
+  const orbRows = (activityData.drop_rows || []).filter((row) => row.section === "Uniques" && orbSlugs.has(row.item_slug));
+  const staffTableChance = staffRows.reduce((sum, row) => sum + (row.probability || 0), 0);
+  const orbTableChance = orbRows.reduce((sum, row) => sum + (row.probability || 0), 0);
+  const secondTableRollChance = clamp((teamSize - 5) / 100, 0, 0.75);
+  const clueChance = (eliteCaClueBoost ? (1 / 190) : (1 / 200)) * (isMvp ? 1.05 : 1);
+  const jarChance = (1 / 2000) * (isMvp ? 1.05 : 1);
+  const petChance = getNightmarePetChance(teamSize) * ((isMvp && teamSize >= 5) ? 1.05 : 1);
+
+  const rollNightmareTable = (rows, chance, sectionOverride) => {
+    if (!rows.length || chance <= 0 || rng() > chance || rng() > uniqueShare) {
+      return;
+    }
+    const picked = pickProbabilityWeightedRow(rows, rng);
+    if (picked) {
+      totalGeValue += addRowLoot(collected, notableDrops, picked, 1, killsCompleted, { sectionOverride });
+    }
+  };
+
+  while (killsCompleted < limit) {
+    killsCompleted += 1;
+
+    if (bonesRow && contributionPercent > 0) {
+      totalGeValue += addRowLoot(collected, notableDrops, bonesRow, 1, killsCompleted, { sectionOverride: "100%" });
+    }
+    if (isMvp && bigBonesRow && contributionPercent > 0) {
+      totalGeValue += addRowLoot(collected, notableDrops, bigBonesRow, 1, killsCompleted, { sectionOverride: "100%" });
+    }
+
+    const commonRow = pickProbabilityWeightedRow(commonRows, rng);
+    if (commonRow) {
+      const quantity = sampleScaledQuantity(commonRow, rng, commonShare, { minOneIfPositive: true });
+      if (quantity > 0) {
+        totalGeValue += addRowLoot(collected, notableDrops, commonRow, quantity, killsCompleted);
+      }
+    }
+
+    rollNightmareTable(staffRows, staffTableChance, "Uniques");
+    rollNightmareTable(orbRows, orbTableChance, "Uniques");
+    if (secondTableRollChance > 0 && rng() <= secondTableRollChance) {
+      rollNightmareTable(staffRows, staffTableChance, "Uniques");
+      rollNightmareTable(orbRows, orbTableChance, "Uniques");
+    }
+
+    if (clueRow && contributionPercent > 0 && rng() <= clueChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, clueRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+    if (jarRow && contributionPercent > 0 && rng() <= jarChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, jarRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+    if (petRow && contributionPercent > 0 && rng() <= petChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
+    }
+  }
+
+  return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
+    group_model: "nightmare",
+    note: "The Nightmare now uses the wiki's group reward model: one common personal drop, two independent unique tables, party-size-based extra table rolls, and static tertiary rolls with the MVP tertiary bonus.",
+    group_context: {
+      team_size: teamSize,
+      contribution_percent: contributionPercent,
+      common_share: commonShare,
+      unique_share: uniqueShare,
+      is_mvp: isMvp,
+      clue_chance: clueChance,
+      jar_chance: jarChance,
+      pet_chance: petChance,
+      second_unique_roll_chance: secondTableRollChance,
+      elite_ca_clue_boost: eliteCaClueBoost,
+    },
+  });
+}
+
+function simulateHueycoatlActivity(activityData, options, rng) {
+  const simulation = activityData.simulation || {};
+  const collected = new Map();
+  const notableDrops = [];
+  let totalGeValue = 0;
+  let killsCompleted = 0;
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
+  const teamSize = clamp(Number(options.huey_team_size) || 1, 1, 20);
+  const contributionPercent = clamp(Number(options.huey_contribution_percent) || 100, 0, 100);
+  const isMvp = teamSize === 1 ? true : Boolean(options.huey_mvp);
+  const metBodyDamage = options.huey_body_damage_met !== false;
+  const hardCaClueBoost = Boolean(options.huey_hard_ca);
+  const baseShare = scaleContributionShare(contributionPercent, 1);
+  const reducedShare = clamp(baseShare * (metBodyDamage ? 1 : 0.05), 0, 1);
+  const commonShare = clamp(reducedShare * (isMvp ? 1.1 : 1), 0, 1);
+  const uniqueRows = (activityData.drop_rows || []).filter((row) => row.section === "Unique");
+  const commonRows = (activityData.drop_rows || []).filter((row) =>
+    !["100%", "Tertiary", "Unique"].includes(row.section || "") && (row.probability || 0) > 0,
+  );
+  const bigBonesRow = getRowBySlug(activityData, "big-bones");
+  const keyHalfRow = getRowBySlug(activityData, "tooth-half-of-key-moon-key");
+  const petRow = getRowBySlug(activityData, "huberte");
+  const clueRow = getRowBySlug(activityData, "clue-scroll-hard");
+  const uniqueChance = uniqueRows.reduce((sum, row) => sum + (row.probability || 0), 0) * reducedShare;
+  const petChance = (petRow?.probability || (1 / 400)) * reducedShare;
+  const clueChance = hardCaClueBoost ? (1 / 47) : (clueRow?.probability || (1 / 50));
+
+  while (killsCompleted < limit) {
+    killsCompleted += 1;
+
+    if (isMvp && bigBonesRow && contributionPercent > 0) {
+      totalGeValue += addRowLoot(collected, notableDrops, bigBonesRow, 1, killsCompleted, { sectionOverride: "100%" });
+    }
+
+    const commonRow = pickProbabilityWeightedRow(commonRows, rng);
+    if (commonRow) {
+      const quantity = sampleScaledQuantity(commonRow, rng, commonShare, { minOneIfPositive: true });
+      if (quantity > 0) {
+        totalGeValue += addRowLoot(collected, notableDrops, commonRow, quantity, killsCompleted);
+      }
+    }
+
+    if (uniqueRows.length && rng() <= uniqueChance) {
+      const picked = pickProbabilityWeightedRow(uniqueRows, rng);
+      if (picked) {
+        totalGeValue += addRowLoot(collected, notableDrops, picked, sampleQuantity(picked.quantity_text || "1", rng), killsCompleted, { sectionOverride: "Unique" });
+      }
+    }
+    if (keyHalfRow && contributionPercent > 0 && rng() <= (keyHalfRow.probability || (1 / 75))) {
+      totalGeValue += addRowLoot(collected, notableDrops, keyHalfRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+    if (clueRow && contributionPercent > 0 && rng() <= clueChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, clueRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+    if (petRow && contributionPercent > 0 && rng() <= petChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
+    }
+
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
+    }
+  }
+
+  return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
+    group_model: "huey",
+    note: "The Hueycoatl now uses the wiki's personal contribution model, including the body-damage penalty, MVP quantity bonus, independent uniques, and static clue and key rolls.",
+    group_context: {
+      team_size: teamSize,
+      contribution_percent: contributionPercent,
+      contribution_share: baseShare,
+      effective_share: reducedShare,
+      common_share: commonShare,
+      is_mvp: isMvp,
+      met_body_damage: metBodyDamage,
+      unique_chance: uniqueChance,
+      hard_clue_chance: clueChance,
+      pet_chance: petChance,
+      hard_ca_clue_boost: hardCaClueBoost,
+    },
+  });
+}
+
+function simulateRoyalTitansActivity(activityData, options, rng) {
+  const simulation = activityData.simulation || {};
+  const collected = new Map();
+  const notableDrops = [];
+  let totalGeValue = 0;
+  let killsCompleted = 0;
+  const fixedMode = getSimulationMode(options) === "fixed";
+  const limit = getSimulationLimit(options);
+  const contributionPercent = clamp(Number(options.royal_titans_contribution_percent) || 100, 0, 100);
+  const contributionShare = scaleContributionShare(contributionPercent, 1);
+  const targetItemSlug = options.target_item_slug || null;
+  const eldricExclusiveSlugs = new Set(["ice-element-staff-crown", "deadeye-prayer-scroll"]);
+  const brandaExclusiveSlugs = new Set(["fire-element-staff-crown", "mystic-vigour-prayer-scroll"]);
+  let target = options.royal_titans_target === "eldric" ? "eldric" : "branda";
+  let lootMode = ["loot", "pages", "sacrifice"].includes(options.royal_titans_loot_mode) ? options.royal_titans_loot_mode : "loot";
+  if (!options.royal_titans_target && targetItemSlug) {
+    const eldricOnly = eldricExclusiveSlugs.has(targetItemSlug) || (activityData.drop_rows || []).some((row) => row.item_slug === targetItemSlug && String(row.rarity_fraction || "").includes("/56"));
+    const brandaOnly = brandaExclusiveSlugs.has(targetItemSlug) || (activityData.drop_rows || []).some((row) => row.item_slug === targetItemSlug && String(row.rarity_fraction || "").includes("/55"));
+    if (eldricOnly && !brandaOnly) {
+      target = "eldric";
+    } else if (brandaOnly && !eldricOnly) {
+      target = "branda";
+    }
+  }
+  if (!options.royal_titans_loot_mode && targetItemSlug === "desiccated-page") {
+    lootMode = "pages";
+  } else if (!options.royal_titans_loot_mode && targetItemSlug === "bran") {
+    lootMode = "sacrifice";
+  }
+  const hardCaClueBoost = Boolean(options.royal_titans_hard_ca);
+  const eliteCaClueBoost = Boolean(options.royal_titans_elite_ca);
+  const rarityToken = target === "eldric" ? "/56" : "/55";
+  const preRollSlugs = target === "eldric"
+    ? new Set(["ice-element-staff-crown", "deadeye-prayer-scroll", "giantsoul-amulet"])
+    : new Set(["fire-element-staff-crown", "mystic-vigour-prayer-scroll", "giantsoul-amulet"]);
+  const uniqueRows = (activityData.drop_rows || []).filter((row) => row.section === "Pre-roll" && preRollSlugs.has(row.item_slug));
+  const commonRows = (activityData.drop_rows || []).filter((row) =>
+    !["100%", "Tertiary drops", "Pre-roll"].includes(row.section || "") &&
+    String(row.rarity_fraction || "").includes(rarityToken) &&
+    (row.probability || 0) > 0,
+  );
+  const pageRow = getRowBySlug(activityData, "desiccated-page");
+  const hardClueRow = getRowBySlug(activityData, "clue-scroll-hard");
+  const eliteClueRow = getRowBySlug(activityData, "clue-scroll-elite");
+  const petRow = getRowBySlug(activityData, "bran");
+  const uniqueChance = uniqueRows.reduce((sum, row) => sum + (row.probability || 0), 0) * contributionShare;
+  const hardClueChance = hardCaClueBoost ? (1 / 23) : (hardClueRow?.probability || (1 / 25));
+  const eliteClueChance = eliteCaClueBoost ? (1 / 95) : (eliteClueRow?.probability || (1 / 100));
+  const petChance = lootMode === "sacrifice" ? (1 / 1500) : (petRow?.probability || (1 / 3000));
+
+  while (killsCompleted < limit) {
+    killsCompleted += 1;
+
+    if (lootMode === "pages") {
+      if (pageRow && contributionPercent > 0) {
+        const quantity = sampleScaledQuantity(pageRow, rng, contributionShare, { minOneIfPositive: true });
+        if (quantity > 0) {
+          totalGeValue += addRowLoot(collected, notableDrops, pageRow, quantity, killsCompleted, { sectionOverride: "100%" });
+        }
+      }
+    } else if (lootMode === "loot") {
+      if (uniqueRows.length && rng() <= uniqueChance) {
+        const picked = pickProbabilityWeightedRow(uniqueRows, rng);
+        if (picked) {
+          totalGeValue += addRowLoot(collected, notableDrops, picked, 1, killsCompleted, { sectionOverride: "Pre-roll" });
+        }
+      } else {
+        for (let roll = 0; roll < 2; roll += 1) {
+          const picked = pickProbabilityWeightedRow(commonRows, rng);
+          if (!picked) {
+            continue;
+          }
+          const quantity = sampleScaledQuantity(picked, rng, contributionShare, { minOneIfPositive: true });
+          if (quantity > 0) {
+            totalGeValue += addRowLoot(collected, notableDrops, picked, quantity, killsCompleted);
+          }
+        }
+      }
+    }
+
+    if (hardClueRow && contributionPercent > 0 && rng() <= hardClueChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, hardClueRow, 1, killsCompleted, { sectionOverride: "Tertiary drops" });
+    }
+    if (eliteClueRow && contributionPercent > 0 && rng() <= eliteClueChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, eliteClueRow, 1, killsCompleted, { sectionOverride: "Tertiary drops" });
+    }
+    if (petRow && contributionPercent > 0 && rng() <= petChance) {
+      totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary drops" });
+    }
+
+    if (!fixedMode && hasReachedSimulationGoal(collected, totalGeValue, options)) {
+      break;
+    }
+  }
+
+  return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
+    group_model: "royalTitans",
+    note: "Royal Titans now use the wiki reward-choice model, with contribution-scaled uniques and common quantities plus the separate loot, pages, and sacrifice options.",
+    group_context: {
+      contribution_percent: contributionPercent,
+      contribution_share: contributionShare,
+      looted_titan: target,
+      reward_option: lootMode,
+      unique_chance: uniqueChance,
+      hard_clue_chance: hardClueChance,
+      elite_clue_chance: eliteClueChance,
+      pet_chance: petChance,
+      hard_ca_clue_boost: hardCaClueBoost,
+      elite_ca_clue_boost: eliteCaClueBoost,
+    },
+  });
+}
+
 function simulateYamaActivity(activityData, options, rng) {
   const simulation = activityData.simulation || {};
   const collected = new Map();
@@ -560,6 +1064,9 @@ function simulateYamaActivity(activityData, options, rng) {
   let killsCompleted = 0;
   const fixedMode = getSimulationMode(options) === "fixed";
   const limit = getSimulationLimit(options);
+  const teamSize = clamp(Number(options.yama_team_size) || 1, 1, 2);
+  const contributionPercent = clamp(Number(options.yama_contribution_percent) || 100, 0, 100);
+  const contributionShare = scaleContributionShare(contributionPercent, 1);
 
   const uniqueRows = [
     { ...getRowBySlug(activityData, "oathplate-helm"), probability: 1 / 5 },
@@ -574,6 +1081,7 @@ function simulateYamaActivity(activityData, options, rng) {
   const clueRow = getRowBySlug(activityData, "clue-scroll-elite");
   const petRow = getRowBySlug(activityData, "yami");
   const eliteClueChance = options.yama_elite_ca ? 1 / 28 : 1 / 30;
+  const junkRows = (activityData.drop_rows || []).filter((row) => row.section === "Junk");
 
   const foodRows = [
     getRowBySlug(activityData, "pineapple-pizza"),
@@ -614,21 +1122,33 @@ function simulateYamaActivity(activityData, options, rng) {
   while (killsCompleted < limit) {
     killsCompleted += 1;
 
-    if (rng() <= (1 / 120)) {
+    if (contributionPercent <= 0) {
+      // No personal loot rolls when no contribution is modeled.
+    } else if (contributionShare < 0.15) {
+      const junkRow = pickProbabilityWeightedRow(junkRows, rng);
+      if (junkRow) {
+        totalGeValue += addRowLoot(collected, notableDrops, junkRow, sampleQuantity(junkRow.quantity_text || "1", rng), killsCompleted, {
+          sectionOverride: "Junk",
+        });
+      }
+    } else if (rng() <= ((1 / 120) * contributionShare)) {
       const picked = pickExclusiveItem(uniqueRows, rng);
       if (picked) {
         totalGeValue += addRowLoot(collected, notableDrops, picked, sampleQuantity(picked.quantity_text || "1", rng), killsCompleted, {
           sectionOverride: "Unique",
         });
       }
-    } else if (dossierRow && rng() <= (1 / 12)) {
+    } else if (dossierRow && rng() <= ((1 / 12) * contributionShare)) {
       totalGeValue += addRowLoot(collected, notableDrops, dossierRow, 1, killsCompleted, { sectionOverride: "Unique" });
     } else if (lockboxRow && rng() <= (1 / 30)) {
       totalGeValue += addRowLoot(collected, notableDrops, lockboxRow, 1, killsCompleted, { sectionOverride: "Unique" });
     } else if (shardsRow && rng() <= (1 / 15)) {
-      totalGeValue += addRowLoot(collected, notableDrops, shardsRow, sampleQuantity(shardsRow.quantity_text || "12", rng), killsCompleted, {
-        sectionOverride: "Unique",
-      });
+      const quantity = scaleQuantityValue(sampleQuantity(shardsRow.quantity_text || "12", rng), contributionShare, { minOneIfPositive: true });
+      if (quantity > 0) {
+        totalGeValue += addRowLoot(collected, notableDrops, shardsRow, quantity, killsCompleted, {
+          sectionOverride: "Unique",
+        });
+      }
     } else if (rng() <= (15 / 78)) {
       const foodRow = pickWeightedValue(foodRows.map((row) => ({ weight: 1, value: row })), rng);
       const restoreRow = pickWeightedValue(restoreRows.map((row) => ({ weight: 1, value: row })), rng);
@@ -645,14 +1165,17 @@ function simulateYamaActivity(activityData, options, rng) {
     } else {
       const picked = pickWeightedValue(standardRows.map((entry) => ({ weight: entry.weight, value: entry.row })), rng);
       if (picked) {
-        totalGeValue += addRowLoot(collected, notableDrops, picked, sampleQuantity(picked.quantity_text || "1", rng), killsCompleted);
+        const quantity = sampleScaledQuantity(picked, rng, contributionShare, { minOneIfPositive: true });
+        if (quantity > 0) {
+          totalGeValue += addRowLoot(collected, notableDrops, picked, quantity, killsCompleted);
+        }
       }
     }
 
-    if (petRow && rng() <= (1 / 2500)) {
+    if (petRow && contributionPercent > 0 && rng() <= (1 / 2500)) {
       totalGeValue += addRowLoot(collected, notableDrops, petRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
     }
-    if (clueRow && rng() <= eliteClueChance) {
+    if (clueRow && contributionPercent > 0 && rng() <= eliteClueChance) {
       totalGeValue += addRowLoot(collected, notableDrops, clueRow, 1, killsCompleted, { sectionOverride: "Tertiary" });
     }
 
@@ -662,10 +1185,18 @@ function simulateYamaActivity(activityData, options, rng) {
   }
 
   return finalizeSimulationResult(activityData, simulation, collected, notableDrops, totalGeValue, killsCompleted, options, {
-    note: "Yama uses the base solo reward model from the OSRS Wiki. Contract fights and duo contribution scaling are not currently simulated.",
+    group_model: "yama",
+    note: "Yama now follows the wiki's per-player reward chain for the base fight. Contract fights still use separate guaranteed contract rewards and are not simulated here.",
     yama_context: {
+      team_size: teamSize,
+      contribution_percent: contributionPercent,
+      contribution_share: contributionShare,
       elite_clue_chance: eliteClueChance,
       elite_ca_clue_boost: Boolean(options.yama_elite_ca),
+      dossier_chance: (1 / 12) * contributionShare,
+      unique_chance: (1 / 120) * contributionShare,
+      shard_chance: 1 / 15,
+      junk_table_active: contributionPercent > 0 && contributionShare < 0.15,
     },
   });
 }
@@ -1114,6 +1645,18 @@ export function simulateActivity(activityData, options = {}) {
   const rng = createRng(seed);
   if (activityData.slug === "mimic") {
     return simulateMimicActivity(activityData, options, rng);
+  }
+  if (activityData.slug === "nex") {
+    return simulateNexActivity(activityData, options, rng);
+  }
+  if (activityData.slug === "nightmare") {
+    return simulateNightmareActivity(activityData, options, rng);
+  }
+  if (activityData.slug === "the-hueycoatl") {
+    return simulateHueycoatlActivity(activityData, options, rng);
+  }
+  if (activityData.slug === "the-royal-titans") {
+    return simulateRoyalTitansActivity(activityData, options, rng);
   }
   if (activityData.slug === "yama") {
     return simulateYamaActivity(activityData, options, rng);

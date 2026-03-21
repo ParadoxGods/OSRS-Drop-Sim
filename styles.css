@@ -644,6 +644,12 @@ label,
   min-width: 126px;
 }
 
+.detail-button {
+  min-height: 28px;
+  padding: 5px 8px;
+  font-size: 0.7rem;
+}
+
 .primary-button:disabled,
 .secondary-button:disabled {
   opacity: 0.46;
@@ -1074,6 +1080,11 @@ label,
   max-height: min(88vh, 820px);
 }
 
+.loot-detail-modal-panel {
+  width: min(920px, calc(100vw - 24px));
+  height: min(84vh, 780px);
+}
+
 .modal-header,
 .picker-meta {
   display: flex;
@@ -1114,6 +1125,43 @@ label,
 
 .comparison-modal-hint {
   margin-top: -2px;
+}
+
+.loot-detail-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding-right: 2px;
+}
+
+.loot-detail-shell,
+.loot-detail-source-list {
+  display: grid;
+  gap: 10px;
+}
+
+.loot-detail-source-card {
+  border: 1px solid var(--panel-border);
+  background: rgba(12, 18, 24, 0.76);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.loot-detail-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 4px;
+  font-size: 0.78rem;
+}
+
+.loot-card-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .theme-editor {
