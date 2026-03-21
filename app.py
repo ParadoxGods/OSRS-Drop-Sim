@@ -117,7 +117,15 @@ def make_handler(state: AppState):
                 return
 
             if parsed.path in {"/", "/index.html"}:
-                serve_file(self, STATIC_DIR / "index.html")
+                serve_file(self, APP_DIR / "index.html")
+                return
+
+            if parsed.path in {"/app.js", "/styles.css", "/simulator.js"}:
+                serve_file(self, APP_DIR / parsed.path.lstrip("/"))
+                return
+
+            if parsed.path.startswith("/data/"):
+                serve_file(self, APP_DIR / parsed.path.lstrip("/"))
                 return
 
             if parsed.path.startswith("/static/"):
