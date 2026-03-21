@@ -2496,22 +2496,6 @@ function renderSimulationResults(result) {
     })
     .join("");
 
-  const notableRows = (result.notable_drops || [])
-    .map((drop) => `
-      <article class="notable-item">
-        <div>
-          <strong>${escapeHtml(drop.item_name)}</strong>
-          <div class="subtle">${escapeHtml(drop.section || "Loot")}</div>
-        </div>
-        <div class="notable-meta">
-          <span>Run ${formatNumber(drop.kill)}</span>
-          <span>${formatNumber(drop.quantity)}x</span>
-          <span>${escapeHtml(drop.rarity_fraction || "Notable")}</span>
-        </div>
-      </article>
-    `)
-    .join("");
-
   elements.simulationResults.innerHTML = `
     <div class="results-shell">
       <div class="metric-grid">
@@ -2526,7 +2510,6 @@ function renderSimulationResults(result) {
       <div class="results-tabs" role="tablist" aria-label="Loot review tabs">
         <button class="results-tab is-active" type="button" data-results-tab="overview">Overview</button>
         <button class="results-tab" type="button" data-results-tab="loot">Loot table</button>
-        <button class="results-tab" type="button" data-results-tab="highlights">Highlights</button>
       </div>
 
       <section class="results-tab-panel is-active" data-tab-panel="overview">
@@ -2594,18 +2577,6 @@ function renderSimulationResults(result) {
               </thead>
               <tbody>${lootRows || '<tr><td colspan="5">No loot recorded.</td></tr>'}</tbody>
             </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="results-tab-panel" data-tab-panel="highlights" hidden>
-        <div class="review-card">
-          <div class="review-card-header">
-            <h3>Notable drops</h3>
-            <span class="subtle">Rare rolls, uniques, pets, and high-value hits</span>
-          </div>
-          <div class="notable-list">
-            ${notableRows || '<div class="results-empty">No notable drops recorded in this run.</div>'}
           </div>
         </div>
       </section>
