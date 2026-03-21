@@ -1,3 +1,4 @@
+import { estimateSessionDuration } from "./activity-time-profiles.js";
 import { simulateActivity } from "./simulator.js";
 
 const TOB_COMMON_ROWS = [
@@ -368,6 +369,35 @@ function formatShortValue(value) {
   return formatNumber(value);
 }
 
+function formatDurationCompact(seconds) {
+  if (!(seconds > 0) || Number.isNaN(seconds)) {
+    return "N/A";
+  }
+  const totalSeconds = Math.round(seconds);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainderSeconds = totalSeconds % 60;
+
+  if (days > 0) {
+    return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+  }
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+  if (minutes > 0) {
+    return remainderSeconds > 0 ? `${minutes}m ${remainderSeconds}s` : `${minutes}m`;
+  }
+  return `${remainderSeconds}s`;
+}
+
+function formatDurationRange(lowSeconds, highSeconds) {
+  if (!(lowSeconds > 0) || !(highSeconds > 0)) {
+    return "N/A";
+  }
+  return `${formatDurationCompact(lowSeconds)} - ${formatDurationCompact(highSeconds)}`;
+}
+
 function isValidHexColor(value) {
   return /^#[0-9a-f]{6}$/i.test(String(value || "").trim());
 }
@@ -487,6 +517,10 @@ function getGroupBossType(slug) {
   if (GROUP_BOSS_TYPES.royalTitans.has(slug)) return "royalTitans";
   if (GROUP_BOSS_TYPES.yama.has(slug)) return "yama";
   return null;
+}
+
+function getSessionTimeEstimate(slug, attempts, options = {}) {
+  return estimateSessionDuration(slug, attempts, options);
 }
 
 function getClueTier(slug) {
@@ -1078,7 +1112,8 @@ function getComparisonDetailMeta(entry, result) {
     ? "Representative sample from the median GP chase run for this boss"
     : `Representative sample from the median ${formatNumber(result?.target_count || 1)}x ${result?.target_item_name || "item"} chase for this boss`;
   const primaryMetricLabel = isGpMode ? "KC to target" : "Median chase KC";
-  return { preview, averageValue, title, subtitle, primaryMetricLabel };
+  const timeEstimate = getSessionTimeEstimate(entry?.slug, entry?.median_kills, {});
+  return { preview, averageValue, title, subtitle, primaryMetricLabel, timeEstimate };
 }
 
 function openComparisonLootModal(slug) {
@@ -1864,6 +1899,22 @@ function buildSummaryCard(label, value) {
   `;
 }
 
+function buildTimeEstimateNote(estimate, prefix = "Time estimate") {
+  if (!estimate) {
+    return "";
+  }
+  const average = formatDurationCompact(estimate.average_seconds);
+  const range = formatDurationRange(estimate.low_seconds, estimate.high_seconds);
+  const referenceLabel = estimate.reference_label || "Reference loop";
+  const referenceNote = estimate.reference_note || "Based on the selected activity's average completion pace.";
+  return `
+    <div class="review-note">
+      <strong>${escapeHtml(prefix)}</strong>
+      <span>${escapeHtml(`${average} average session length (${range} with a ±15% band). ${referenceLabel}: ${referenceNote}`)}</span>
+    </div>
+  `;
+}
+
 function setRunButtonState(running) {
   elements.simulateButton.classList.toggle("is-running", running);
   elements.simulateButton.setAttribute("aria-busy", String(running));
@@ -2041,6 +2092,11 @@ function renderRunSummary() {
     cards.push(buildSummaryCard("Kill cap", formatNumber(MAX_SIM_CAP)));
   } else {
     cards.push(buildSummaryCard("Attempts", formatNumber(options.kills)));
+    const timeEstimate = getSessionTimeEstimate(rootSlug, options.kills, options);
+    if (timeEstimate) {
+      cards.push(buildSummaryCard("Avg / run", formatDurationCompact(timeEstimate.avg_kill_seconds)));
+      cards.push(buildSummaryCard("Session time", formatDurationCompact(timeEstimate.average_seconds)));
+    }
   }
 
   if (!isGpMode) {
@@ -2318,10 +2374,12 @@ function buildComparisonLootDetail(entry, result, options = {}) {
       ${headerMarkup}
       <div class="metric-grid gp-detail-metrics">
         ${buildMetricCard(detail.primaryMetricLabel, entry.capped ? `${formatNumber(MAX_SIM_CAP)}+` : formatNumber(entry.median_kills), true)}
+        ${buildMetricCard("Est. duration", detail.timeEstimate ? formatDurationCompact(detail.timeEstimate.average_seconds) : "N/A")}
         ${buildMetricCard("Total value", `${formatShortValue(preview.total_ge_value || 0)} gp`)}
         ${buildMetricCard("Value / kill", `${formatShortValue(detail.averageValue)} gp`)}
         ${buildMetricCard("Distinct items", formatNumber(preview.distinct_items || 0))}
       </div>
+      ${buildTimeEstimateNote(detail.timeEstimate, "Duration model")}
       ${buildGpPreviewTable(preview)}
     </div>
   `;
@@ -2333,13 +2391,14 @@ function buildComparisonRankRow(entry, index, maxKillsForScale, selectedSlug, re
     ? 100
     : Math.max(8, Math.min(100, ((entry.median_kills || 0) / Math.max(1, maxKillsForScale || 1)) * 100));
   const killsLabel = entry.capped ? `${formatNumber(MAX_SIM_CAP)}+ kc` : `${formatNumber(entry.median_kills)} kc`;
+  const timeLabel = entry.median_time_seconds ? formatDurationCompact(entry.median_time_seconds) : null;
   const rangeLabel = entry.min_kills === entry.max_kills
     ? `Sample ${formatNumber(entry.min_kills)}`
     : `Range ${formatNumber(entry.min_kills)}-${formatNumber(entry.max_kills)}`;
   const isSelected = entry.slug === selectedSlug;
   const secondaryLabel = resultMode === "gp"
-    ? `${rangeLabel} · ${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill`
-    : `${rangeLabel} · ${targetItemName || "Target"} chase`;
+    ? `${rangeLabel}${timeLabel ? ` · ~${timeLabel}` : ""} · ${formatShortValue(entry.avg_gp_per_kill || 0)} gp / kill`
+    : `${rangeLabel}${timeLabel ? ` · ~${timeLabel}` : ""} · ${targetItemName || "Target"} chase`;
 
   return `
     <button class="gp-rank-row${entry.capped ? " is-capped" : ""}${isSelected ? " is-selected" : ""}" type="button" data-gp-slug="${escapeHtml(entry.slug)}">
@@ -2350,7 +2409,10 @@ function buildComparisonRankRow(entry, index, maxKillsForScale, selectedSlug, re
           <strong>${escapeHtml(entry.name)}</strong>
           <span>${escapeHtml(secondaryLabel)}</span>
         </div>
-        <div class="gp-rank-kc">${escapeHtml(killsLabel)}</div>
+        <div class="gp-rank-kc">
+          <strong>${escapeHtml(killsLabel)}</strong>
+          ${timeLabel ? `<span>${escapeHtml(timeLabel)}</span>` : ""}
+        </div>
       </div>
       <div class="gp-rank-bar">
         <span class="gp-rank-fill" style="width: ${fillPercent.toFixed(2)}%"></span>
@@ -2385,6 +2447,7 @@ function renderComparisonResults(result) {
   const chartSubtle = isGpMode
     ? "Lowest simulated KC first, highest last"
     : "Only bosses that can drop this item are ranked";
+  const bestTime = best?.median_time_seconds ? formatDurationCompact(best.median_time_seconds) : "N/A";
 
   elements.simulationResults.innerHTML = `
     <div class="results-shell gp-results-shell">
@@ -2393,11 +2456,17 @@ function renderComparisonResults(result) {
         ${buildMetricCard("Bosses ranked", formatNumber(result.boss_count || rankings.length))}
         ${isGpMode ? buildMetricCard("Samples / boss", formatNumber(result.sample_count || 0)) : buildMetricCard("Target count", `${formatNumber(result.target_count || 1)}x`)}
         ${buildMetricCard("Fastest median", best ? `${formatNumber(best.median_kills)} kc` : "N/A")}
+        ${buildMetricCard("Fastest time", bestTime)}
       </div>
 
       <div class="review-note">
         <strong>${comparisonLabel}</strong>
         <span>${comparisonCopy}</span>
+      </div>
+
+      <div class="review-note">
+        <strong>Duration model</strong>
+        <span>Each ranked boss also carries an estimated session length based on its reference encounter pace, shown with the same ±15% timing band used throughout the simulator.</span>
       </div>
 
       <div class="review-note comparison-modal-hint">
@@ -2428,6 +2497,10 @@ function renderSimulationResults(result) {
   state.activeResultsTab = "overview";
 
   const averageValue = result.kills_completed ? Math.round((result.total_ge_value || 0) / result.kills_completed) : 0;
+  const currentConfig = collectSimulationPayloadAndOptions();
+  const timeEstimate = state.selectedActivity
+    ? getSessionTimeEstimate(state.selectedActivity.slug, result.kills_completed, currentConfig?.options || {})
+    : null;
   const sectionRows = buildSectionRows(result);
   const topItems = (result.top_items || [])
     .map((item) => {
@@ -2500,12 +2573,14 @@ function renderSimulationResults(result) {
     <div class="results-shell">
       <div class="metric-grid">
         ${buildMetricCard("Runs", formatNumber(result.kills_completed))}
+        ${buildMetricCard("Est. duration", timeEstimate ? formatDurationCompact(timeEstimate.average_seconds) : "N/A")}
         ${buildMetricCard("Total value", `${formatShortValue(result.total_ge_value || 0)} gp`, true)}
         ${buildMetricCard("Value / run", `${formatShortValue(averageValue)} gp`)}
         ${buildMetricCard("Distinct items", formatNumber(result.distinct_items))}
       </div>
 
       ${buildResultMeta(result)}
+      ${buildTimeEstimateNote(timeEstimate)}
 
       <div class="results-tabs" role="tablist" aria-label="Loot review tabs">
         <button class="results-tab is-active" type="button" data-results-tab="overview">Overview</button>
@@ -2633,6 +2708,9 @@ async function runGpComparison(targetGpValue) {
     samples.sort((a, b) => a.kills - b.kills || a.total_ge_value - b.total_ge_value);
     const medianSample = samples[Math.floor(samples.length / 2)] || { kills: MAX_SIM_CAP, result: null };
     const medianKills = medianSample.kills || MAX_SIM_CAP;
+    const timeEstimate = getSessionTimeEstimate(summary.slug, medianKills, {});
+    const minTimeEstimate = getSessionTimeEstimate(summary.slug, samples[0]?.kills || medianKills, {});
+    const maxTimeEstimate = getSessionTimeEstimate(summary.slug, samples[samples.length - 1]?.kills || medianKills, {});
     rankings.push({
       slug: summary.slug,
       name: summary.name,
@@ -2640,6 +2718,11 @@ async function runGpComparison(targetGpValue) {
       median_kills: medianKills,
       min_kills: samples[0]?.kills || medianKills,
       max_kills: samples[samples.length - 1]?.kills || medianKills,
+      median_time_seconds: timeEstimate?.average_seconds || null,
+      min_time_seconds: minTimeEstimate?.average_seconds || null,
+      max_time_seconds: maxTimeEstimate?.average_seconds || null,
+      avg_kill_seconds: timeEstimate?.avg_kill_seconds || null,
+      time_estimate: timeEstimate,
       avg_gp_per_kill: totalKills > 0 ? Math.round(totalValue / totalKills) : 0,
       capped: medianKills >= MAX_SIM_CAP,
       preview_result: medianSample.result,
@@ -2707,6 +2790,9 @@ async function runTargetComparison(targetItem, targetCount) {
     samples.sort((a, b) => a.kills - b.kills || a.total_ge_value - b.total_ge_value);
     const medianSample = samples[Math.floor(samples.length / 2)] || { kills: MAX_SIM_CAP, result: null };
     const medianKills = medianSample.kills || MAX_SIM_CAP;
+    const timeEstimate = getSessionTimeEstimate(summary.slug, medianKills, {});
+    const minTimeEstimate = getSessionTimeEstimate(summary.slug, samples[0]?.kills || medianKills, {});
+    const maxTimeEstimate = getSessionTimeEstimate(summary.slug, samples[samples.length - 1]?.kills || medianKills, {});
     rankings.push({
       slug: summary.slug,
       name: summary.name,
@@ -2714,6 +2800,11 @@ async function runTargetComparison(targetItem, targetCount) {
       median_kills: medianKills,
       min_kills: samples[0]?.kills || medianKills,
       max_kills: samples[samples.length - 1]?.kills || medianKills,
+      median_time_seconds: timeEstimate?.average_seconds || null,
+      min_time_seconds: minTimeEstimate?.average_seconds || null,
+      max_time_seconds: maxTimeEstimate?.average_seconds || null,
+      avg_kill_seconds: timeEstimate?.avg_kill_seconds || null,
+      time_estimate: timeEstimate,
       avg_gp_per_kill: totalKills > 0 ? Math.round(totalValue / totalKills) : 0,
       capped: !medianSample.result?.target_reached,
       preview_result: medianSample.result,

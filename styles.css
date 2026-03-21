@@ -778,7 +778,7 @@ label,
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 8px;
 }
 
@@ -925,7 +925,15 @@ label,
 }
 
 .gp-rank-kc {
+  display: grid;
+  gap: 2px;
+  justify-items: end;
   font-weight: 600;
+}
+
+.gp-rank-kc strong,
+.gp-rank-kc span {
+  display: block;
 }
 
 .gp-rank-bar {
@@ -959,7 +967,7 @@ label,
 }
 
 .gp-detail-metrics {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 }
 
 .loot-card-grid,

@@ -120,7 +120,7 @@ def make_handler(state: AppState):
                 serve_file(self, APP_DIR / "index.html")
                 return
 
-            if parsed.path in {"/app.js", "/styles.css", "/simulator.js"}:
+            if parsed.path in {"/app.js", "/styles.css", "/simulator.js", "/activity-time-profiles.js"}:
                 serve_file(self, APP_DIR / parsed.path.lstrip("/"))
                 return
 
